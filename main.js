@@ -5,7 +5,7 @@ const AbortController = require('node-abort-controller');
 
 async function fetchWithTimeout(resource, options) {
     const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 200);
+    const id = setTimeout(() => controller.abort(), 500);
 
     const response = await fetch(resource, {
         ...options,
@@ -150,9 +150,9 @@ async function interactWithMonster(monsterID, berry, username) {
         body: `{"berry":null,"pid":[{"pid":"${monsterID}","berry":"${berry}"}],"ismulticlick":true,"returnformat":"party"}`,
         method: 'POST',
         mode: 'cors'
-    }).catch(function () {
+    }).catch(err => {
         fails++;
-    });
+    })
 
     if (!!res) {
         const body = await res.text();
@@ -166,27 +166,32 @@ async function interactWithMonster(monsterID, berry, username) {
     return !!res;
 }
 
-async function main() {
+async function main(maxPlayerSweep) {
     let userList = await getListOfOnlineUsers();
-    userList = [userList[55]];
+    userList = userList.slice(0, maxPlayerSweep);
 
     if (!!userList.length) {
         for (const user of userList) {
             const fields = await getListOfFields(user.url);
             if (!!fields.length) {
+                const maxFields = fields.length;
+                let fieldCounter = 0;
                 for (const field of fields) {
                     const mons = await getPokemonsAndBerryFromField(user.url, field);
                     if (!!mons.length) {
                         for (var i = 0; i < mons.length; i++) {
                             const mon = mons[i];
                             const interaction = await interactWithMonster(mon.id, mon.berry, user.url);
-                            console.log(`[${user.url} (field ${field.id})] Monster ${mon.id} \t [${success}/${success + fails} (${Math.round(100 * success/(success+fails))}%)]`);
+                            console.log(`[${user.url} (field ${field.id} (${fieldCounter}/${maxFields}))] Monster ${i}/${mons.length} \t [${success}/${success + fails} (${Math.round(100 * success/(success+fails))}%)]`);
                         }
                     }
+                    fieldCounter++;
                 }
             }
         }
     }
 }
-
-main();
+(async () => {
+   await main(25);
+   console.log("Finished");
+})()
