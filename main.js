@@ -1,13 +1,28 @@
 const fetch = require('node-fetch');
 const parse = require('node-html-parser');
-const Bluebird = require('bluebird');
- 
-fetch.Promise = Bluebird;
+const AbortController = require('node-abort-controller');
 
-const GLOBALCOOKIE = "cookie";
 
-async function main() {
-    fetch('https://pokefarm.com/online', {
+async function fetchWithTimeout(resource, options) {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), 200);
+
+    const response = await fetch(resource, {
+        ...options,
+        signal: controller.signal
+    });
+    clearTimeout(id);
+
+    return response;
+}
+
+const GLOBALCOOKIE = '64ee244e01f257ec141ed90a91219a3b';
+
+var fails = 0;
+var success = 0;
+
+async function getListOfOnlineUsers() {
+    const res = await fetch('https://pokefarm.com/online', {
         credentials: 'include',
         headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
@@ -21,26 +36,27 @@ async function main() {
             'https://pokefarm.com/users/Emmafairyfeet,MissLitago,Sleepytally,ningi,KaiCat,SpaceHusk0,cathyn2361,backfire,Ice_Astral,AntTaylor216?src=~online',
         method: 'GET',
         mode: 'cors'
-    })
-        .then(res => res.text())
-        .then(async function (body) {
-            const data = parse.parse(body).querySelector('#onlinedata').childNodes[0].rawText;
-            const users = JSON.parse(
-                data.replace(
-                    '" data-newicon="&lt;img src=&quot;https://pfq-static.com/img/zophan/bulb-12.png/t=1468582453&quot; title=&quot;New Farmer&quot;/>">',
-                    ''
-                )
-            );
-            const user = users[Math.round(Math.random() * (users.length - 1))];
-            user.name = user.name.replace('{NEW}', '');
-            user.name = user.name.replace('{HM}', '');
-            console.log(user);
-            await getListOfFields(user.url);
-        });
+    }).catch(function () {
+        fails++;
+    });
+
+    if (!!res) {
+        const body = await res.text();
+        const data = await parse.parse(body).querySelector('#onlinedata').childNodes[0].rawText;
+        console.log("Got list of Users");
+        return JSON.parse(
+            data.replace(
+                '" data-newicon="&lt;img src=&quot;https://pfq-static.com/img/zophan/bulb-12.png/t=1468582453&quot; title=&quot;New Farmer&quot;/>">',
+                ''
+            )
+        );
+    } else {
+        return [];
+    }
 }
 
-async function getListOfFields(username) {
-    fetch('https://pokefarm.com/fields/fieldlist', {
+async function getListOfFields(userUrl) {
+    const res = await fetch('https://pokefarm.com/fields/fieldlist', {
         credentials: 'include',
         headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
@@ -54,55 +70,24 @@ async function getListOfFields(username) {
             cookie: `PFQSID=${GLOBALCOOKIE}`
         },
         referrer: 'https://pokefarm.com/fields/Niet',
-        body: `{"uid":"${username}"}`,
+        body: `{"uid":"${userUrl}"}`,
         method: 'POST',
         mode: 'cors'
-    })
-        .then(res => res.text())
-        .then(body => {
-            const data = JSON.parse(body).fields;
-            const interval = setInterval(() => {
-                if (data.length > 0) {
-                    const field = data[0];
-                    getPokemonsAndBerryFromField(username, field.id);
-                    data.shift();
-                } else {
-                    interval.unref();
-                }
-            }, 2500);
-        });
+    }).catch(function () {
+        fails++;
+    });
+    if (!!res) {
+        const body = await res.text();
+        const data = JSON.parse(body).fields;
+        console.log("Got list of Fields from " + userUrl);
+        return data;
+    } else {
+        return [];
+    }
 }
 
-async function getMonstersFromUser(username) {
-    fetch('https://pokefarm.com/user/' + username, {
-        credentials: 'include',
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
-            Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'de,en-US;q=0.7,en;q=0.3',
-            'Upgrade-Insecure-Requests': '1',
-            'Sec-GPC': '1',
-            cookie: `PFQSID=${GLOBALCOOKIE}`
-        },
-        method: 'GET',
-        mode: 'cors'
-    })
-        .then(res => res.text())
-        .then(body => {
-            const data = parse.parse(body);
-            try {
-                data.querySelector('#partybox').childNodes[1].childNodes.forEach(monsterHTML => {
-                    try {
-                        const monsterID = monsterHTML.rawAttrs.replace('data-pid="', '').replace('"', '');
-                        // await interactWithEgg(monsterID, username);
-                    } catch (error) {}
-                });
-            } catch (error) {}
-        });
-}
-
-async function getPokemonsAndBerryFromField(username, id) {
-    fetch('https://pokefarm.com/fields/field', {
+async function getPokemonsAndBerryFromField(username, field) {
+    const res = await fetch('https://pokefarm.com/fields/field', {
         credentials: 'include',
         headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
@@ -115,38 +100,40 @@ async function getPokemonsAndBerryFromField(username, id) {
             'Cache-Control': 'no-cache'
         },
         referrer: 'https://pokefarm.com/fields/Niet',
-        body: `{"id":${id},"uid":"${username}","mode":"public"}`,
+        body: `{"id":${field.id},"uid":"${username}","mode":"public"}`,
         method: 'POST',
         mode: 'cors'
-    })
-        .then(res => res.text())
-        .then(async function (body) {
-            const data = parse.parse(JSON.parse(body).html).querySelectorAll('.fieldmon');
-            const interval = setInterval(() => {
-                if (data.length > 0) {
-                    const mon = data[0];
-                    const tasteBerry = new Map();
-                    tasteBerry.set('any', 'aspear');
-                    tasteBerry.set('sour', 'aspear');
-                    tasteBerry.set('spicy', 'cheri');
-                    tasteBerry.set('dry', 'chesto');
-                    tasteBerry.set('sweet', 'pecha');
-                    tasteBerry.set('bitter', 'rawst');
-                    if (Number(mon._rawAttrs['data-fed']) === 0) {
-                        interactWithMonster(mon._rawAttrs['data-id'], tasteBerry.get(mon._rawAttrs['data-flavour'].split('-')[0]), username);
-                    }
-                    data.shift();
-                } else {
-                    interval.unref();
-                }
-            }, 50);
+    }).catch(function () {
+        fails++;
+    });
+
+    if (!!res) {
+        const body = await res.text();
+        const data = parse.parse(JSON.parse(body).html).querySelectorAll('.fieldmon');
+
+        const tasteBerry = new Map();
+        tasteBerry.set('any', 'aspear');
+        tasteBerry.set('sour', 'aspear');
+        tasteBerry.set('spicy', 'cheri');
+        tasteBerry.set('dry', 'chesto');
+        tasteBerry.set('sweet', 'pecha');
+        tasteBerry.set('bitter', 'rawst');
+
+        console.log("Got list of Pokemons from " + username + " in field " + field.id);
+
+        return data.map(mon => {
+            return {
+                id: mon._rawAttrs['data-id'],
+                berry: tasteBerry.get(mon._rawAttrs['data-flavour'].split('-')[0])
+            };
         });
+    } else {
+        return [];
+    }
 }
 
-var interactions = 0;
-
 async function interactWithMonster(monsterID, berry, username) {
-    fetch('https://pokefarm.com/summary/interact', {
+    const res = await fetchWithTimeout('https://pokefarm.com/summary/interact', {
         credentials: 'include',
         headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
@@ -163,19 +150,43 @@ async function interactWithMonster(monsterID, berry, username) {
         body: `{"berry":null,"pid":[{"pid":"${monsterID}","berry":"${berry}"}],"ismulticlick":true,"returnformat":"party"}`,
         method: 'POST',
         mode: 'cors'
-    })
-        .then(res => res.text())
-        .then(body => {
-            if (JSON.parse(body).ok) {
-                interactions++;
-                console.log('Successful [' +interactions + '] Fed pokemon (' + monsterID + ') from ' + username);
-            } else {
-                console.log('Failed');
-                console.log(body); 
-            }
-        });
+    }).catch(function () {
+        fails++;
+    });
+
+    if (!!res) {
+        const body = await res.text();
+        if(JSON.parse(body).ok) {
+            success++;
+        }
+
+        return JSON.parse(body).ok;
+    }
+
+    return !!res;
 }
 
-setImmediate(() => {
-    main();
-}, 60 * 5 * 1000)
+async function main() {
+    let userList = await getListOfOnlineUsers();
+    userList = [userList[55]];
+
+    if (!!userList.length) {
+        for (const user of userList) {
+            const fields = await getListOfFields(user.url);
+            if (!!fields.length) {
+                for (const field of fields) {
+                    const mons = await getPokemonsAndBerryFromField(user.url, field);
+                    if (!!mons.length) {
+                        for (var i = 0; i < mons.length; i++) {
+                            const mon = mons[i];
+                            const interaction = await interactWithMonster(mon.id, mon.berry, user.url);
+                            console.log(`[${user.url} (field ${field.id})] Monster ${mon.id} \t [${success}/${success + fails} (${Math.round(100 * success/(success+fails))}%)]`);
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+main();
