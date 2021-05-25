@@ -4,7 +4,7 @@ const Bluebird = require('bluebird');
  
 fetch.Promise = Bluebird;
 
-const GLOBALCOOKIE = "64ee244e01f257ec141ed90a91219a3b";
+const GLOBALCOOKIE = "cookie";
 
 async function main() {
     fetch('https://pokefarm.com/online', {
