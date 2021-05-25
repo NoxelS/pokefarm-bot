@@ -177,8 +177,11 @@ async function main(maxPlayerSweep) {
     userList = userList.slice(0, maxPlayerSweep);
 
     if (!!userList.length) {
+        let totalMonCount = 0;
+        let sweeptMons = 0;
         for (const user of userList) {
             const [fields, monCount] = await getListOfFields(user.url);
+            totalMonCount+=monCount;
             if (!!fields.length) {
                 const maxFields = fields.length;
                 let fieldCounter = 0;
@@ -188,7 +191,8 @@ async function main(maxPlayerSweep) {
                         for (var i = 0; i < mons.length; i++) {
                             const mon = mons[i];
                             const interaction = await interactWithMonster(mon.id, mon.berry, user.url);
-                            console.log(`[${user.url} (field ${field.id} (${fieldCounter}/${maxFields}))] Monster ${i}/${monCount} \t [${success}/${success + fails} (${Math.round(100 * success/(success+fails))}%)]`);
+                            console.log(`[${user.url} (field ${field.id} (${fieldCounter}/${maxFields}))] Monster ${i}/${monCount} \t [${success}/${success + fails} (${Math.round(100 * success/(success+fails))}%)] \t Total: ${sweeptMons}/${totalMonCount}`);
+                            sweeptMons++;
                         }
                     }
                     fieldCounter++;
