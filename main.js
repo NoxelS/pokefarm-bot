@@ -5,7 +5,7 @@ const AbortController = require('node-abort-controller');
 
 async function fetchWithTimeout(resource, options) {
     const controller = new AbortController();
-    const id = setTimeout(() => controller.abort(), 500);
+    const id = setTimeout(() => controller.abort(), 150);
 
     const response = await fetch(resource, {
         ...options,
@@ -79,8 +79,14 @@ async function getListOfFields(userUrl) {
     if (!!res) {
         const body = await res.text();
         const data = JSON.parse(body).fields;
-        console.log("Got list of Fields from " + userUrl);
-        return data;
+        console.log(data[0]);
+
+        let monCount = 0;
+        data.forEach(f => monCount += f.count);
+
+
+        console.log("Got list of Fields from " + userUrl + " with " + monCount + "pokemons");
+        return [data, monCount];
     } else {
         return [];
     }
@@ -172,7 +178,7 @@ async function main(maxPlayerSweep) {
 
     if (!!userList.length) {
         for (const user of userList) {
-            const fields = await getListOfFields(user.url);
+            const [fields, monCount] = await getListOfFields(user.url);
             if (!!fields.length) {
                 const maxFields = fields.length;
                 let fieldCounter = 0;
@@ -182,7 +188,7 @@ async function main(maxPlayerSweep) {
                         for (var i = 0; i < mons.length; i++) {
                             const mon = mons[i];
                             const interaction = await interactWithMonster(mon.id, mon.berry, user.url);
-                            console.log(`[${user.url} (field ${field.id} (${fieldCounter}/${maxFields}))] Monster ${i}/${mons.length} \t [${success}/${success + fails} (${Math.round(100 * success/(success+fails))}%)]`);
+                            console.log(`[${user.url} (field ${field.id} (${fieldCounter}/${maxFields}))] Monster ${i}/${monCount} \t [${success}/${success + fails} (${Math.round(100 * success/(success+fails))}%)]`);
                         }
                     }
                     fieldCounter++;
