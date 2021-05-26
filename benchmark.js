@@ -92,13 +92,13 @@ async function getStats() {
         nteractionsPerSeconds =
             Math.round((100 * 1000 * (interactions - lastInteractions.interactions)) / (new Date().getTime() - lastInteractions.time)) / 100;
     } else {
-        lastInteractions = { time: new Date().getTime(), interactions };
+        lastInteractions = { time: new Date().getTime(), interactions, credits };
     }
 
     console.log(
         `${name} - [${new Date().toLocaleTimeString()}] Interactions: ${interactions} (${nteractionsPerSeconds}/s) +${
             interactions - lastInteractions.interactions
-        } \t EggLevel: ${eggLevel}\t Money: ${credits}, ${creditsGold}, ${creditsBlue}\t`
+        } \t EggLevel: ${eggLevel}\t Money: ${credits} (+${credits - lastInteractions.credits}), ${creditsGold}, ${creditsBlue}\t`
     );
 }
 const trainingPokemon = '_BRYn';
