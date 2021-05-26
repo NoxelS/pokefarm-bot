@@ -8,7 +8,7 @@ const https = require('https');
 
 const httpAgent = new http.Agent({ keepAlive: true });
 const httpsAgent = new https.Agent({ keepAlive: true });
-const agent = (_parsedURL) => _parsedURL.protocol == 'http:' ? httpAgent : httpsAgent;
+const agent = _parsedURL => (_parsedURL.protocol == 'http:' ? httpAgent : httpsAgent);
 
 const logError = msg => {
     filelog(msg, 'errors.log');
@@ -191,17 +191,25 @@ async function interactWithMonster(monsterID, berry, username) {
     return !!res;
 }
 
-async function main(maxPlayerSweep) {
+async function main(maxPlayerSweep, definedUserList) {
     const startTime = new Date().getTime();
-
-    // Get user
-    let userList = await getListOfOnlineUsers();
+    let userList;
+    if (definedUserList) {
+        userList = definedUserList.map(name => {
+            return { url: name };
+        });
+    } else {
+        // Get user
+        userList = await getListOfOnlineUsers();
+    }
 
     // Shuffle user
     shuffle(userList);
 
     // Sweep only pokemons from the first <maxPlayerSweep> players
     userList = userList.slice(0, maxPlayerSweep);
+
+    console.log(userList);
     if (!!userList && !!userList.length) {
         let totalMonCount = 0;
         let sweeptMons = 0;
@@ -221,7 +229,7 @@ async function main(maxPlayerSweep) {
                                 `[${user.url} (field ${field.id} (${fieldCounter}/${mons.length}))] Monster ${i}/${monCount} \t [${success}/${
                                     success + fails
                                 } (${Math.round((100 * success) / (success + fails))}%)] \t Total: ${sweeptMons}/${totalMonCount}\t ${
-                                    Math.round((success) / (success + fails)) * Math.round((100 * 1000 * sweeptMons) / (new Date().getTime() - startTime)) / 100
+                                    (Math.round(success / (success + fails)) * Math.round((100 * 1000 * sweeptMons) / (new Date().getTime() - startTime))) / 100
                                 }mons/s`
                             );
                             sweeptMons++;
@@ -234,7 +242,35 @@ async function main(maxPlayerSweep) {
     }
 }
 
+const hoardLeader = [
+    'Peachi',
+    'AriDae',
+    'SpiderAlexander',
+    'Eltafez',
+    'Lirissea',
+    'Caitlyn1999',
+    'michanne001',
+    'Persona Gear',
+    'bubby',
+    'beemo',
+    'TechmasterSM4000',
+    'Meu',
+    'Psychotria',
+    'annador',
+    'Scorpyia',
+    'Majamomse',
+    'LunaOokami',
+    'tape',
+    'mtp85',
+    'Temporal',
+    'sword',
+    'Kâsé',
+    'Nudge',
+    'Hakunamatatayolo',
+    'QuillDrill'
+];
+
 (async () => {
-    await main(25);
+    await main(25, hoardLeader);
     console.log('Finished');
 })();
