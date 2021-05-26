@@ -16,7 +16,7 @@ const logError = msg => {
     filelog(msg, 'errors.log');
 };
 
-const GLOBALCOOKIE = '64ee244e01f257ec141ed90a91219a3b';
+const GLOBALCOOKIE = process.env.cookie;
 
 var fails = 0;
 var success = 0;

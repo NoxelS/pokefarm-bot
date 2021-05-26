@@ -10,6 +10,7 @@ const shuffle = require('shuffle-array');
 const filelog = require('log-to-file');
 const http = require('http');
 const https = require('https');
+require('dotenv').config()
 
 const httpAgent = new http.Agent({ keepAlive: true });
 const httpsAgent = new https.Agent({ keepAlive: true });
@@ -19,7 +20,7 @@ const logError = msg => {
     filelog(msg, 'errors.log');
 };
 
-const GLOBALCOOKIE = '64ee244e01f257ec141ed90a91219a3b';
+const GLOBALCOOKIE = process.env.cookie;
 
 var fails = 0;
 var success = 0;
