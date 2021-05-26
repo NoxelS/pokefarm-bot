@@ -50,6 +50,7 @@ async function adoptEgg(newEggBody) {
 }
 
 function moveHatchedPokemon(eggID) {
+    //TODO: Check if field full
     return fetch('https://pokefarm.com/fields/movetofield', {
         credentials: 'include',
         headers: {
@@ -135,7 +136,7 @@ async function adoptNewEgg() {
     const newEggBody = await getNewEgg();
     if (!!newEggBody) {
         await adoptEgg(newEggBody).then(() => {
-            console.log("Adopted new egg!");
+            // TODO: Hold egg once already
         });
     }
 }
@@ -186,7 +187,6 @@ async function hatchPartyEggs() {
                 console.log("Egg hatched:", eggID);
 
                 await moveHatchedPokemon(eggID).then(async () => {
-                    console.log("Moved egg to fields:", eggID);
                     await adoptNewEgg();
                 });
             });
@@ -277,8 +277,5 @@ setInterval(() => {
     getStats();
     collectTrainingBags(GLOBALCOOKIE, trainingPokemon);
     skipInteractionWarning(GLOBALCOOKIE);
-}, 2000);
-
-setInterval(() => {
     hatchPartyEggs();
-}, 600000);
+}, 2000);
