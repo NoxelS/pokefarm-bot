@@ -1,9 +1,31 @@
 const retus = require('retus');
 const parse = require('node-html-parser');
+const fetch = require('node-fetch');
 
 const GLOBALCOOKIE = '64ee244e01f257ec141ed90a91219a3b';
 
 var lastInteractions;
+
+async function collectTrainingBags(cookie, pokemon) {
+    fetch('https://pokefarm.com/dojo/training/collect', {
+        credentials: 'include',
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
+            Accept: 'application/json, text/javascript, /; q=0.01',
+            'Accept-Language': 'de,en-US;q=0.7,en;q=0.3',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'Love',
+            'Sec-GPC': '1',
+            Pragma: 'no-cache',
+            'Cache-Control': 'no-cache',
+            cookie: `PFQSID=${cookie}`
+        },
+        referrer: 'https://pokefarm.com/fields/Niet',
+        body: `{"id":"${pokemon}"}`,
+        method: 'POST',
+        mode: 'cors'
+    }).then(() => {});
+}
 
 async function getStats() {
     const { body } = retus('https://pokefarm.com/', {
@@ -53,11 +75,13 @@ async function getStats() {
     }
 
     console.log(
-        `${name} - [${new Date().toLocaleTimeString()}] Interactions: ${interactions} (${nteractionsPerSeconds}/s) \t EggLevel: ${eggLevel}\t Money: ${credits}, ${creditsGold}, ${creditsBlue}\t Online: ${online}`
+        `${name} - [${new Date().toLocaleTimeString()}] Interactions: ${interactions} (${nteractionsPerSeconds}/s) +${(interactions - lastInteractions.interactions)} \t EggLevel: ${eggLevel}\t Money: ${credits}, ${creditsGold}, ${creditsBlue}\t`
     );
 }
+const trainingPokemon = "_BRYn";
 
 getStats();
 setInterval(() => {
     getStats();
+    collectTrainingBags(GLOBALCOOKIE, trainingPokemon)
 }, 2000);
