@@ -225,7 +225,7 @@ async function skipInteractionWarning(cookie) {
 }
 
 async function getStats() {
-    const { body } = retus('https://pokefarm.com/', {
+    const {body} = retus('https://pokefarm.com/', {
         credentials: 'include',
         headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
@@ -267,7 +267,7 @@ async function getStats() {
         nteractionsPerSeconds =
             Math.round((100 * 1000 * (interactions - lastInteractions.interactions)) / (new Date().getTime() - lastInteractions.time)) / 100;
     } else {
-        lastInteractions = { time: new Date().getTime(), interactions, credits };
+        lastInteractions = {time: new Date().getTime(), interactions, credits};
     }
 
     console.log(
@@ -278,7 +278,7 @@ async function getStats() {
 }
 
 const trainingPokemon = process.env.trainingPokemonID;
-const fieldID = process.env.trainingPokemonID.fieldIDToMoveEggs;
+const fieldID = process.env.fieldIDToMoveEggs;
 
 getStats();
 setInterval(() => {
