@@ -91,7 +91,6 @@ async function main(speed) {
     shuffle(monsters);
 
     for (const monster of monsters) {
-        await sleep(speed);
         await interactWithMonster(monster.id, monster.berry, monster.username);
         if(count % 100 == 0) {
             console.log(
