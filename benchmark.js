@@ -277,8 +277,8 @@ async function getStats() {
     );
 }
 
-const trainingPokemon = '_HjWN';
-const fieldID = 31;
+const trainingPokemon = process.env.trainingPokemonID;
+const fieldID = process.env.trainingPokemonID.fieldIDToMoveEggs;
 
 getStats();
 setInterval(() => {
