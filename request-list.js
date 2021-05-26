@@ -130,3 +130,22 @@ await fetch("https://pokefarm.com/fishing/fish.hook", {
     "method": "POST",
     "mode": "cors"
 });
+
+// Spare request
+await fetch("https://pokefarm.com/dojo/sparring/challenge", {
+    "credentials": "include",
+    "headers": {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0",
+        "Accept": "application/json, text/javascript, */*; q=0.01",
+        "Accept-Language": "de,en-US;q=0.7,en;q=0.3",
+        "Content-Type": "application/json",
+        "X-Requested-With": "Love",
+        "Sec-GPC": "1",
+        "Pragma": "no-cache",
+        "Cache-Control": "no-cache"
+    },
+    "referrer": "https://pokefarm.com/dojo/sparring/challenge/Skiddie",
+    "body": "{\"username\":\"Skiddie\",\"pokemon\":\"_Bbqr\",\"message\":\"\"}",
+    "method": "POST",
+    "mode": "cors"
+});
