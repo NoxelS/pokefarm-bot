@@ -17,9 +17,12 @@
   },
   "homepage": "https://github.com/NoxelS/pokefarm-bot#readme",
   "dependencies": {
+    "abort-controller": "^3.0.0",
     "bluebird": "^3.7.2",
+    "log-to-file": "^2.0.2",
     "node-abort-controller": "^2.0.0",
     "node-fetch": "^2.6.1",
-    "node-html-parser": "^3.3.4"
+    "node-html-parser": "^3.3.4",
+    "shuffle-array": "^1.0.1"
   }
 }
