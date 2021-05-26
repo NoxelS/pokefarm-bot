@@ -23,6 +23,7 @@
     "node-abort-controller": "^2.0.0",
     "node-fetch": "^2.6.1",
     "node-html-parser": "^3.3.4",
+    "retus": "^1.1.2",
     "shuffle-array": "^1.0.1"
   }
 }
