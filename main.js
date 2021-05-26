@@ -3,6 +3,12 @@ const parse = require('node-html-parser');
 const AbortController = require('abort-controller');
 const shuffle = require('shuffle-array');
 const filelog = require('log-to-file');
+const http = require('http');
+const https = require('https');
+
+const httpAgent = new http.Agent({ keepAlive: true });
+const httpsAgent = new https.Agent({ keepAlive: true });
+const agent = (_parsedURL) => _parsedURL.protocol == 'http:' ? httpAgent : httpsAgent;
 
 const logError = msg => {
     filelog(msg, 'errors.log');
@@ -115,7 +121,8 @@ async function getPokemonsAndBerryFromField(username, field) {
             referrer: 'https://pokefarm.com/fields/Niet',
             body: `{"id":${field.id},"uid":"${username}","mode":"public"}`,
             method: 'POST',
-            mode: 'cors'
+            mode: 'cors',
+            agent
         },
         200
     ).catch(err => {
@@ -165,7 +172,8 @@ async function interactWithMonster(monsterID, berry, username) {
         referrer: `https://pokefarm.com/user/${username}`,
         body: `{"berry":null,"pid":[{"pid":"${monsterID}","berry":"${berry}"}],"ismulticlick":true,"returnformat":"party"}`,
         method: 'POST',
-        mode: 'cors'
+        mode: 'cors',
+        agent
     }).catch(err => {
         fails++;
         logError(err);
@@ -213,7 +221,7 @@ async function main(maxPlayerSweep) {
                                 `[${user.url} (field ${field.id} (${fieldCounter}/${mons.length}))] Monster ${i}/${monCount} \t [${success}/${
                                     success + fails
                                 } (${Math.round((100 * success) / (success + fails))}%)] \t Total: ${sweeptMons}/${totalMonCount}\t ${
-                                    Math.round((100 * 1000 * sweeptMons) / (new Date().getTime() - startTime)) / 100
+                                    Math.round((success) / (success + fails)) * Math.round((100 * 1000 * sweeptMons) / (new Date().getTime() - startTime)) / 100
                                 }mons/s`
                             );
                             sweeptMons++;
