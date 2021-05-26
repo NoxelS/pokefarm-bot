@@ -1,9 +1,9 @@
 #!/bin/sh
 
-node benchmark.js &
+node benchmark.js
 
 while [ 1 ]
 do
-    node main.js > server.log &
+    node main.js > server.log
     sleep 600
 done

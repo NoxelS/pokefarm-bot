@@ -20,6 +20,7 @@
     "abort-controller": "^3.0.0",
     "bluebird": "^3.7.2",
     "count-lines-in-file": "^1.1.0",
+    "dotenv": "^10.0.0",
     "log-to-file": "^2.0.2",
     "node-abort-controller": "^2.0.0",
     "node-fetch": "^2.6.1",

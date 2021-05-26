@@ -6,6 +6,7 @@ const filelog = require('log-to-file');
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
+require('dotenv').config()
 
 const httpAgent = new http.Agent({ keepAlive: true });
 const httpsAgent = new https.Agent({ keepAlive: true });

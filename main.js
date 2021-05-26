@@ -5,6 +5,7 @@ const shuffle = require('shuffle-array');
 const filelog = require('log-to-file');
 const http = require('http');
 const https = require('https');
+require('dotenv').config()
 
 const httpAgent = new http.Agent({ keepAlive: true });
 const httpsAgent = new https.Agent({ keepAlive: true });
@@ -271,6 +272,6 @@ const hoardLeader = [
 ];
 
 (async () => {
-    await main(25, hoardLeader);
+    await main(25);
     console.log('Finished');
 })();

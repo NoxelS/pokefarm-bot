@@ -1,8 +1,14 @@
 const retus = require('retus');
 const parse = require('node-html-parser');
 const fetch = require('node-fetch');
+const filelog = require('log-to-file');
+require('dotenv').config()
 
-const GLOBALCOOKIE = '96dd4eb0774a2fc6b486b159ccfb1e37';
+const logError = msg => {
+    filelog(msg, 'errors.log');
+};
+
+const GLOBALCOOKIE = process.env.cookie;
 
 var lastInteractions;
 
@@ -24,7 +30,8 @@ async function collectTrainingBags(cookie, pokemon) {
         body: `{"id":"${pokemon}"}`,
         method: 'POST',
         mode: 'cors'
-    }).then(() => {
+    }).catch(err => {
+        logError(err);
     });
 }
 
@@ -46,6 +53,8 @@ async function adoptEgg(newEggBody) {
         body: newEggBody,
         method: 'POST',
         mode: 'cors'
+    }).catch(err => {
+        logError(err);
     });
 }
 
@@ -68,6 +77,8 @@ function moveHatchedPokemon(eggID) {
         body: `{"id":"${eggID}", "field":${fieldID}, "getEmptySlot":true}`,
         method: 'POST',
         mode: 'cors'
+    }).catch(err => {
+        logError(err);
     });
 }
 
@@ -89,6 +100,8 @@ function hatchEgg(eggID) {
         body: `{"id":"${eggID}"}`,
         method: 'POST',
         mode: 'cors'
+    }).catch(err => {
+        logError(err);
     });
 }
 
@@ -111,7 +124,6 @@ async function getNewEgg() {
         method: 'POST',
         mode: 'cors'
     }).catch(err => {
-        fails++;
         logError(err);
     });
 
@@ -123,7 +135,7 @@ async function getNewEgg() {
         let newEgg = `{"egg": ${3}, "key": ${timestamp}}`; //Default
 
         eggs.forEach((egg, index) => {
-            if (egg.name === "???????") {
+            if (egg.name === '???????') {
                 newEgg = `{"egg": ${index}, "key": ${timestamp}}`;
             }
         });
@@ -152,12 +164,10 @@ async function hatchPartyEggs() {
             'Sec-GPC': '1',
             cookie: `PFQSID=${GLOBALCOOKIE}`
         },
-        referrer:
-            'https://pokefarm.com/user/Niet?src=~online',
+        referrer: 'https://pokefarm.com/user/Niet?src=~online',
         method: 'GET',
         mode: 'cors'
     }).catch(err => {
-        fails++;
         logError(err);
     });
 
@@ -167,10 +177,7 @@ async function hatchPartyEggs() {
 
         for (const member of partyMembers) {
             const egg = member.rawAttrs;
-            const eggID = egg.substring(
-                egg.indexOf('"') + 1,
-                egg.lastIndexOf('"')
-            );
+            const eggID = egg.substring(egg.indexOf('"') + 1, egg.lastIndexOf('"'));
 
             if (eggID.length === 0) {
                 // Slot is empty for whatever reason
@@ -178,13 +185,13 @@ async function hatchPartyEggs() {
                 continue;
             }
 
-            if (!member.querySelector('.action').innerHTML.includes("Hatch")) {
+            if (!member.querySelector('.action').innerHTML.includes('Hatch')) {
                 // Egg not ready to hatch
                 continue;
             }
 
             await hatchEgg(eggID).then(async () => {
-                console.log("Egg hatched:", eggID);
+                console.log('Egg hatched:', eggID);
 
                 await moveHatchedPokemon(eggID).then(async () => {
                     await adoptNewEgg();
@@ -212,11 +219,13 @@ async function skipInteractionWarning(cookie) {
         body: 'null',
         method: 'POST',
         mode: 'cors'
+    }).catch(err => {
+        logError(err);
     });
 }
 
 async function getStats() {
-    const {body} = retus('https://pokefarm.com/', {
+    const { body } = retus('https://pokefarm.com/', {
         credentials: 'include',
         headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
@@ -252,14 +261,13 @@ async function getStats() {
     const creditsBlue = parse.parse(body).querySelector('#c_zophan').innerText.replace(/\D/g, '');
 
     const name = parse.parse(body).querySelector('.userlink0').innerText;
-    const online = parse.parse(body).querySelectorAll('[href="/online"]')[0].innerText.replace(/\D/g, '');
 
     var nteractionsPerSeconds;
     if (lastInteractions) {
         nteractionsPerSeconds =
             Math.round((100 * 1000 * (interactions - lastInteractions.interactions)) / (new Date().getTime() - lastInteractions.time)) / 100;
     } else {
-        lastInteractions = {time: new Date().getTime(), interactions, credits};
+        lastInteractions = { time: new Date().getTime(), interactions, credits };
     }
 
     console.log(
