@@ -2,7 +2,7 @@ const retus = require('retus');
 const parse = require('node-html-parser');
 const fetch = require('node-fetch');
 
-const GLOBALCOOKIE = '64ee244e01f257ec141ed90a91219a3b';
+const GLOBALCOOKIE = '96dd4eb0774a2fc6b486b159ccfb1e37';
 
 var lastInteractions;
 
@@ -24,7 +24,174 @@ async function collectTrainingBags(cookie, pokemon) {
         body: `{"id":"${pokemon}"}`,
         method: 'POST',
         mode: 'cors'
-    }).then(() => {});
+    }).then(() => {
+    });
+}
+
+async function adoptEgg(newEggBody) {
+    return fetch('https://pokefarm.com/lab/adopt', {
+        credentials: 'include',
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
+            Accept: 'application/json, text/javascript, */*; q=0.01',
+            'Accept-Language': 'de,en-US;q=0.7,en;q=0.3',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'Love',
+            'Sec-GPC': '1',
+            Pragma: 'no-cache',
+            'Cache-Control': 'no-cache',
+            cookie: `PFQSID=${GLOBALCOOKIE}`
+        },
+        referrer: 'https://pokefarm.com/user/Niet',
+        body: newEggBody,
+        method: 'POST',
+        mode: 'cors'
+    });
+}
+
+function moveHatchedPokemon(eggID) {
+    //TODO: Check if field full
+    return fetch('https://pokefarm.com/fields/movetofield', {
+        credentials: 'include',
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
+            Accept: 'application/json, text/javascript, */*; q=0.01',
+            'Accept-Language': 'de,en-US;q=0.7,en;q=0.3',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'Love',
+            'Sec-GPC': '1',
+            Pragma: 'no-cache',
+            'Cache-Control': 'no-cache',
+            cookie: `PFQSID=${GLOBALCOOKIE}`
+        },
+        referrer: 'https://pokefarm.com/user/Niet',
+        body: `{"id":"${eggID}", "field":${fieldID}, "getEmptySlot":true}`,
+        method: 'POST',
+        mode: 'cors'
+    });
+}
+
+function hatchEgg(eggID) {
+    return fetch('https://pokefarm.com/summary/hatch', {
+        credentials: 'include',
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
+            Accept: 'application/json, text/javascript, */*; q=0.01',
+            'Accept-Language': 'de,en-US;q=0.7,en;q=0.3',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'Love',
+            'Sec-GPC': '1',
+            Pragma: 'no-cache',
+            'Cache-Control': 'no-cache',
+            cookie: `PFQSID=${GLOBALCOOKIE}`
+        },
+        referrer: 'https://pokefarm.com/user/Niet',
+        body: `{"id":"${eggID}"}`,
+        method: 'POST',
+        mode: 'cors'
+    });
+}
+
+async function getNewEgg() {
+    const res = await fetch('https://pokefarm.com/lab/eggs', {
+        credentials: 'include',
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
+            Accept: 'application/json, text/javascript, */*; q=0.01',
+            'Accept-Language': 'de,en-US;q=0.7,en;q=0.3',
+            'Content-Type': 'application/json',
+            'X-Requested-With': 'Love',
+            'Sec-GPC': '1',
+            Pragma: 'no-cache',
+            'Cache-Control': 'no-cache',
+            cookie: `PFQSID=${GLOBALCOOKIE}`
+        },
+        referrer: 'https://pokefarm.com/user/Niet',
+        body: `{}`,
+        method: 'POST',
+        mode: 'cors'
+    }).catch(err => {
+        fails++;
+        logError(err);
+    });
+
+    if (!!res) {
+        const body = await res.text();
+        const eggData = JSON.parse(body);
+        const eggs = eggData.eggs;
+        const timestamp = eggData.targettime;
+        let newEgg = `{"egg": ${3}, "key": ${timestamp}}`; //Default
+
+        eggs.forEach((egg, index) => {
+            if (egg.name === "???????") {
+                newEgg = `{"egg": ${index}, "key": ${timestamp}}`;
+            }
+        });
+
+        return newEgg;
+    }
+}
+
+async function adoptNewEgg() {
+    const newEggBody = await getNewEgg();
+    if (!!newEggBody) {
+        await adoptEgg(newEggBody).then(() => {
+            // TODO: Hold egg once already
+        });
+    }
+}
+
+async function hatchPartyEggs() {
+    const res = await fetch('https://pokefarm.com/party', {
+        credentials: 'include',
+        headers: {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
+            Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'de,en-US;q=0.7,en;q=0.3',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-GPC': '1',
+            cookie: `PFQSID=${GLOBALCOOKIE}`
+        },
+        referrer:
+            'https://pokefarm.com/user/Niet?src=~online',
+        method: 'GET',
+        mode: 'cors'
+    }).catch(err => {
+        fails++;
+        logError(err);
+    });
+
+    if (!!res) {
+        const body = await res.text();
+        const partyMembers = parse.parse(body).querySelector('.party').childNodes;
+
+        for (const member of partyMembers) {
+            const egg = member.rawAttrs;
+            const eggID = egg.substring(
+                egg.indexOf('"') + 1,
+                egg.lastIndexOf('"')
+            );
+
+            if (eggID.length === 0) {
+                // Slot is empty for whatever reason
+                await adoptNewEgg();
+                continue;
+            }
+
+            if (!member.querySelector('.action').innerHTML.includes("Hatch")) {
+                // Egg not ready to hatch
+                continue;
+            }
+
+            await hatchEgg(eggID).then(async () => {
+                console.log("Egg hatched:", eggID);
+
+                await moveHatchedPokemon(eggID).then(async () => {
+                    await adoptNewEgg();
+                });
+            });
+        }
+    }
 }
 
 async function skipInteractionWarning(cookie) {
@@ -49,7 +216,7 @@ async function skipInteractionWarning(cookie) {
 }
 
 async function getStats() {
-    const { body } = retus('https://pokefarm.com/', {
+    const {body} = retus('https://pokefarm.com/', {
         credentials: 'include',
         headers: {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
@@ -92,7 +259,7 @@ async function getStats() {
         nteractionsPerSeconds =
             Math.round((100 * 1000 * (interactions - lastInteractions.interactions)) / (new Date().getTime() - lastInteractions.time)) / 100;
     } else {
-        lastInteractions = { time: new Date().getTime(), interactions, credits };
+        lastInteractions = {time: new Date().getTime(), interactions, credits};
     }
 
     console.log(
@@ -101,11 +268,14 @@ async function getStats() {
         } \t EggLevel: ${eggLevel}\t Money: ${credits} (+${credits - lastInteractions.credits}), ${creditsGold}, ${creditsBlue}\t`
     );
 }
-const trainingPokemon = '_BRYn';
+
+const trainingPokemon = '_HjWN';
+const fieldID = 31;
 
 getStats();
 setInterval(() => {
     getStats();
     collectTrainingBags(GLOBALCOOKIE, trainingPokemon);
     skipInteractionWarning(GLOBALCOOKIE);
+    hatchPartyEggs();
 }, 2000);
