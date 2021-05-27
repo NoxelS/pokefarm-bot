@@ -174,9 +174,10 @@ async function hatchPartyEggs() {
     if (!!res) {
         const body = await res.text();
         const partyMembers = parse.parse(body).querySelector('.party').childNodes;
-
+        console.log(partyMembers);
         for (const member of partyMembers) {
             const egg = member.rawAttrs;
+            console.log(egg);
             const eggID = egg.substring(egg.indexOf('"') + 1, egg.lastIndexOf('"'));
 
             if (eggID.length === 0) {

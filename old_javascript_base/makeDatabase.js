@@ -215,5 +215,5 @@ const hoardLeader = [
 ];
 
 (async () => {
-    await main(700);
+    await main(700, hoardLeader);
 })();
