@@ -1,8 +1,24 @@
 import {Observable} from 'rxjs';
 import {filter, map, mergeMap, pairwise, switchMap} from 'rxjs/operators';
 import {RequestMethod, sendServerRequestAndGetHtml} from '../utils/requests';
-import {Pokedex} from "../shared/items.const";
 
+/**
+ * Maps the five Pokedexes (Pokedices?) to the array index they have in the PokeFarm code
+ */
+export enum Pokedex {
+    'egg' = 5,
+    'pkmn' = 7,
+    'shiny' = 8,
+    'albi' = 9,
+    'melan' = 10
+}
+
+/**
+ * @param eggs Whether this Pokemon can directly hatch from an egg without having to evolve.
+ * @param eggdex Whether this Pokemon is registered in the player's Eggdex, i. e. if the player has hatched that egg already.
+ * @param pkmn Whether this Pokemon is a Pokemon. Guess this is mostly true.
+ * @param pokedex Whether this Pokemon is registered in the player's Pokedex, i. e. if the player was in control of this Pokemon already.
+ */
 export class PokedexEntry {
     id: string;
     name: string;
@@ -30,7 +46,7 @@ export class PokedexEntry {
         this.melandex = melandex;
     }
 
-    getDexValueFromEntry(dex: Pokedex): boolean {
+    getDexValue(dex: Pokedex): boolean {
         if (dex == Pokedex.egg) return this.eggdex;
         if (dex == Pokedex.pkmn) return this.pokedex;
         if (dex == Pokedex.shiny) return this.shinydex;
@@ -57,23 +73,18 @@ export class PokedexEntry {
 }
 
 function notInDex(dex: Pokedex): (mon: PokedexEntry) => boolean {
-    return (mon: PokedexEntry) => !mon.getDexValueFromEntry(dex);
+    return (mon: PokedexEntry) => !mon.getDexValue(dex);
 }
 
-function getName() {
-    return (mon: PokedexEntry) => mon.name;
-}
-
-export function getMissingPokedexEntries(dex: Pokedex): Observable<string> {
+export function getMissingPokedexEntries(dex: Pokedex): Observable<PokedexEntry> {
     return getPokedexEntries().pipe(
-        filter(notInDex(dex)),
-        map(getName())
+        filter(notInDex(dex))
     );
 }
 
 function retainPreStageOfAPokemonIfMissingInDex(dex: Pokedex) {
     return mergeMap(([preStage, pokemon]) => {
-            if (!pokemon.getDexValueFromEntry(dex)) {
+            if (!pokemon.getDexValue(dex)) {
                 return Array.of(preStage);
             } else {
                 return [] as Array<PokedexEntry>
@@ -82,11 +93,10 @@ function retainPreStageOfAPokemonIfMissingInDex(dex: Pokedex) {
     );
 }
 
-export function getPreStageOfMissingPokedexEntries(dex: Pokedex): Observable<string> {
+export function getPreStageOfMissingPokedexEntries(dex: Pokedex): Observable<PokedexEntry> {
     return getPokedexEntries().pipe(
         pairwise(),
-        retainPreStageOfAPokemonIfMissingInDex(dex),
-        map(getName())
+        retainPreStageOfAPokemonIfMissingInDex(dex)
     );
 }
 

@@ -28,11 +28,3 @@ const berryMap = new Map<BerryTaste, BerryTypeEnum>([
 export function getBerryByTaste(taste: BerryTaste): BerryTypeEnum {
     return berryMap.get(taste) || BerryTypeEnum.aspear;
 }
-
-export enum Pokedex {
-    'egg' = 5,
-    'pkmn' = 7,
-    'shiny' = 8,
-    'albi' = 9,
-    'melan' = 10
-}

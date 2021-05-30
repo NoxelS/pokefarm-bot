@@ -1,5 +1,4 @@
-import {getPreStageOfMissingPokedexEntries} from './controllers/dexchecker';
-import {Pokedex} from "./shared/items.const";
+import {getPreStageOfMissingPokedexEntries, Pokedex} from './controllers/dexchecker';
 
 // getListOfOnlineUsers()
 //     .pipe(
@@ -11,7 +10,7 @@ import {Pokedex} from "./shared/items.const";
 //     )
 //     .subscribe(console.log, _ => console.log(_));
 
-getPreStageOfMissingPokedexEntries(Pokedex.pkmn).subscribe(console.log);
+getPreStageOfMissingPokedexEntries(Pokedex.pkmn).subscribe(mon => console.log(mon.name));
 //TODO: go through each of own fields
 // store Pokemon-Species-Name from Tooltip-Data in an array
 // compare PreStageOfMissingPokemon with PokemonInFields for entries included in both
