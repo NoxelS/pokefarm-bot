@@ -65,8 +65,8 @@ export function hatchPartyEggs() {
                         return getFields(process.env.pfqusername as any).pipe(
                             map(fields => {
                                 if (!!fields) {
-                                    const nextTempField = fields.filter(field => (field.name == "Temp" && Number(field.count) < 40))[0];
-                                    return nextTempField ? nextTempField.id : fields.filter(field => Number(field.count) < 40)[0].id;
+                                    const nextTempFields = fields.filter(field => (field.name == "Temp" && Number(field.count) < 40));
+                                    return nextTempFields.length > 0 ? nextTempFields[0].id : fields.filter(field => Number(field.count) < 40)[0].id;
                                 } else {
                                     log('No field with name "Temp" was found.');
                                     return 'null';
