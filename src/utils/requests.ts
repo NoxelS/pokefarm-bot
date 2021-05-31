@@ -1,9 +1,8 @@
 import fetch from 'node-fetch';
-import parse, { HTMLElement } from 'node-html-parser';
-import { Observable } from 'rxjs';
-import { map } from 'rxjs/operators';
-
-import { USERCOOKIE } from '../const';
+import parse, {HTMLElement} from 'node-html-parser';
+import {Observable} from 'rxjs';
+import {map} from 'rxjs/operators';
+import {USERCOOKIE} from "../const";
 
 
 /** Add new ones if needed */

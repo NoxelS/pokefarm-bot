@@ -1,6 +1,7 @@
 import {Observable} from 'rxjs';
 import {filter, map, mergeMap, pairwise, switchMap} from 'rxjs/operators';
-import {RequestMethod, sendServerRequestAndGetHtml} from '../utils/requests';
+import {RequestMethod, sendServerRequest, sendServerRequestAndGetHtml} from '../utils/requests';
+import parse from "node-html-parser";
 
 /**
  * Maps the five Pokedexes (Pokedices?) to the array index they have in the PokeFarm code
@@ -55,7 +56,7 @@ export class PokedexEntry {
         return false;
     }
 
-    static ofArray(arr: Array<any>): PokedexEntry {
+    static fromArray(arr: Array<any>): PokedexEntry {
         return new PokedexEntry(
             arr[0],
             arr[1],
@@ -82,9 +83,15 @@ export function getMissingPokedexEntries(dex: Pokedex): Observable<PokedexEntry>
     );
 }
 
+/**
+ * This returns the Pokemon directly before a missing Pokemon that can not hatch from an egg (i. e. a Pokemon that can only be acquired through evolution).
+ * Usually the Pokemon directly before such a Pokemon is a Pokemon that can evolve to the missing Pokemon. Exceptions maybe are Pokemon that got their evolution(s) in later generations of the game.
+ * Using some kind of Map of evolutions would be much better, both semantically and syntactically.
+ * @param dex The dex that a Pokemon is potentially missing in.
+ */
 function retainPreStageOfAPokemonIfMissingInDex(dex: Pokedex) {
     return mergeMap(([preStage, pokemon]) => {
-            if (!pokemon.getDexValue(dex)) {
+            if (!pokemon.getDexValue(dex) && !pokemon.eggs && !preStage.name.includes('???')) {
                 return Array.of(preStage);
             } else {
                 return [] as Array<PokedexEntry>
@@ -107,6 +114,39 @@ export function getPokedexEntries(): Observable<PokedexEntry> {
             let regions: Array<any> = Object.values(JSON.parse(html.querySelector("#dexdata").rawText).regions);
             return ([] as Array<any>).concat(...regions);
         }),
-        map(plainArray => PokedexEntry.ofArray(plainArray))
+        map(plainArray => PokedexEntry.fromArray(plainArray))
+    );
+}
+
+export class Field {
+    id: number;
+    name: string;
+
+    constructor(id: number, name: string) {
+        this.id = id;
+        this.name = name;
+    }
+
+    static fromJSON(json: any) {
+        return new Field(json.id, json.name);
+    }
+
+}
+
+export function getFieldsFromUser(user: String): Observable<Field> {
+    const requestURL = 'https://pokefarm.com/fields/fieldlist';
+    console.log(user);
+    return sendServerRequest<string>(requestURL, RequestMethod.Post, `{uid: "${user}"}`).pipe(
+        switchMap(body => JSON.parse(body).fields),
+        map(field => Field.fromJSON(field))
+    );
+}
+
+export function getPokemonFromField(user: String, fieldId: number): Observable<string> {
+    const requestURL = 'https://pokefarm.com/fields/field';
+    return sendServerRequest<string>(requestURL, RequestMethod.Post, `{"id": ${fieldId}, "uid": "${user}", "mode": "public"}`).pipe(
+        map(body => parse(JSON.parse(body).html)),
+        switchMap(html => html.querySelectorAll(".fieldmontip")), //TODO you can easily get ".fieldmon" here
+        map(fieldmon => fieldmon.childNodes[3].childNodes[3].rawText.trim()) // TODO and then getAttribute("data-pid") here
     );
 }

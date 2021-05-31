@@ -1,4 +1,10 @@
-import {getPreStageOfMissingPokedexEntries, Pokedex} from './controllers/dexchecker';
+import {
+    getFieldsFromUser,
+    getPokemonFromField,
+    getPreStageOfMissingPokedexEntries,
+    Pokedex
+} from './controllers/dexchecker';
+import {distinct, last, map, mergeMap, mergeWith, scan} from "rxjs/operators";
 
 // getListOfOnlineUsers()
 //     .pipe(
@@ -10,8 +16,22 @@ import {getPreStageOfMissingPokedexEntries, Pokedex} from './controllers/dexchec
 //     )
 //     .subscribe(console.log, _ => console.log(_));
 
-getPreStageOfMissingPokedexEntries(Pokedex.pkmn).subscribe(mon => console.log(mon.name));
-//TODO: go through each of own fields
-// store Pokemon-Species-Name from Tooltip-Data in an array
-// compare PreStageOfMissingPokemon with PokemonInFields for entries included in both
-//  manually search for the pokemon in your fields and see how they evolve
+
+const user = "Skiddie";
+const pokemonFromUser = getFieldsFromUser(user).pipe(
+    mergeMap(field => {
+        return getPokemonFromField(user, field.id);
+    }),
+    distinct()
+);
+
+getPreStageOfMissingPokedexEntries(Pokedex.pkmn).pipe(
+    map(entry => entry.name),
+    mergeWith(pokemonFromUser),
+    scan(([dupes, uniques], next) =>
+            [uniques.has(next) ? dupes.add(next) : dupes, uniques.add(next)],
+        [new Set(), new Set()]
+    ),
+    map(([dupes]) => dupes),
+    last()
+).subscribe(console.log);
