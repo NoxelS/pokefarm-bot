@@ -1,14 +1,29 @@
-import { count, map, mergeMap, take } from 'rxjs/operators';
+import * as dotenv from 'dotenv';
 
-import { getListOfOnlineUsers, getPokemonsInPartyFromUser } from './controllers/party.interacter';
+import { getUserStats } from './controllers/stats';
 
 
-getListOfOnlineUsers()
-    .pipe(
-        map(user => user.url),
-        take(10),
-        mergeMap(getPokemonsInPartyFromUser),
-        // mergeMap(monsterid => interactWithMonster(monsterid, BerryTypeEnum.aspear)),
-        count()
-    )
-    .subscribe(console.log, _ => console.log(_));
+dotenv.config();
+
+getUserStats().subscribe(res => {
+    console.log(res);
+})
+
+// from(['1', '2', '3'])
+//     .pipe(
+//         tap(a => {
+//             console.log(a);
+//         }),
+//         concatMap(pokemon => interactWithMonster('a', getBerryByTaste(BerryTaste.any)))
+//     )
+//     .subscribe(res => console.log(res.ok));
+
+// getListOfOnlineUsers()
+//     .pipe(
+//         take(3),
+//         map(user => user.url),
+//         mergeMap(getPokemonsInPartyFromUser)
+//     )
+//     .subscribe(async pokemon => {
+//         const ok = interactWithMonsterList(pokemon);
+//     });

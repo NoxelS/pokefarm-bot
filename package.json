@@ -14,8 +14,12 @@
   "author": "Schwabenland, Weber <noel@schwabenland.ch>",
   "license": "MIT",
   "dependencies": {
+    "@types/cookie": "^0.4.0",
+    "@types/moment": "^2.13.0",
     "@types/node-fetch": "^2.5.10",
+    "cookie": "^0.4.1",
     "log-to-file": "^2.0.2",
+    "moment": "^2.29.1",
     "node-fetch": "^2.6.1",
     "node-html-parser": "^3.3.4",
     "rxjs": "^7.1.0"

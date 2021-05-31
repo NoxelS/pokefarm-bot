@@ -1,7 +1,9 @@
-import { from } from 'rxjs';
-import { filter, map, switchMap } from 'rxjs/operators';
+import parse from 'node-html-parser';
+import { from, Observable } from 'rxjs';
+import { filter, map, mergeMap, switchMap } from 'rxjs/operators';
 
-import { RequestMethod, sendServerRequestAndGetHtml } from '../utils/requests';
+import { BerryTaste } from '../shared/items.const';
+import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '../utils/requests';
 
 
 export function interactWith10Parties() {
@@ -18,6 +20,13 @@ export interface User {
     name: string;
 }
 
+export interface Pokemon {
+    monsterid: string;
+    isEgg: boolean;
+    taste: BerryTaste;
+    name: string;
+}
+
 export function getListOfOnlineUsers() {
     return sendServerRequestAndGetHtml('https://pokefarm.com/online', RequestMethod.Get).pipe(
         map(HTMLEle => {
@@ -28,19 +37,24 @@ export function getListOfOnlineUsers() {
                 )
             );
         }),
-        switchMap((users: User[]) => from(users)),
+        mergeMap((users: User[]) => from(users)),
         filter(user => !!user.url)
     );
 }
 
-export function getPokemonsInPartyFromUser(userurl: string) {
-    // TODO: DATAPID nimmt andere felder
-    return sendServerRequestAndGetHtml(`https://pokefarm.com/user/${userurl}`, RequestMethod.Get).pipe(
-        map(HTML => {
-            console.log(userurl + " - " + HTML.querySelectorAll('[data-pid]').map(egg => egg.attributes['data-pid']));
-            return HTML.querySelectorAll('[data-pid]').map(egg => egg.attributes['data-pid']);
-        }),
-        switchMap(mons => from(mons))
+export function getPokemonsInPartyFromUser(userurl: string): Observable<Pokemon[]> {
+    return sendServerRequest<any>(`https://pokefarm.com/users/load`, RequestMethod.Post, `{\"name\":\"${userurl}\"}`).pipe(
+        map(body => parse(JSON.parse(body).html)),
+        map(r => {
+            return r.querySelectorAll('[data-pid]').map(monster => {
+                return <Pokemon>{
+                    monsterid: monster.attributes['data-pid'],
+                    isEgg: monster.querySelector('.summarylink').innerText.indexOf('&lt;Egg>') !== -1,
+                    taste: monster.querySelector('[data-up]')?.attributes['data-up'] || BerryTaste.any,
+                    name: monster.querySelector('.summarylink').innerText.replace('&lt;Egg>', 'Egg')
+                };
+            });
+        })
     );
 }
 
