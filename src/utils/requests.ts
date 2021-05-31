@@ -14,7 +14,6 @@ export enum RequestMethod {
 
 export function sendServerRequest<T>(url: string, method: RequestMethod, postbody?: string): Observable<T> {
     return getCookie().pipe(switchMap(PFQSID => {
-        console.log("Found cookie " + PFQSID);
         return new Observable<T>(observer => {
             fetch(url, {
                 headers: {
@@ -51,10 +50,10 @@ export function sendServerRequest<T>(url: string, method: RequestMethod, postbod
 }
 
 /** Get a HTMLElement from the response (if inFieldHTML is set to true, the html field will be read) */
-export function sendServerRequestAndGetHtml(url: string, method: RequestMethod, inFieldHTML?: boolean): Observable<HTMLElement> {
+export function sendServerRequestAndGetHtml(url: string, method: RequestMethod, inFieldHTML?: boolean, postbody?: string): Observable<HTMLElement> {
     if (!!inFieldHTML) {
-        return sendServerRequest<string>(url, method).pipe(map(body => parse(JSON.parse(body).html)));
+        return sendServerRequest<string>(url, method, postbody).pipe(map(body => parse(JSON.parse(body).html)));
     } else {
-        return sendServerRequest<string>(url, method).pipe(map(body => parse(body)));
+        return sendServerRequest<string>(url, method, postbody).pipe(map(body => parse(body)));
     }
 }
