@@ -1,6 +1,6 @@
 import parse from 'node-html-parser';
-import {Observable} from 'rxjs';
-import {distinct, filter, last, map, mergeMap, mergeWith, pairwise, scan, switchMap, tap} from 'rxjs/operators';
+import {from, Observable} from 'rxjs';
+import {concatMap, distinct, filter, map, mergeMap, mergeWith, pairwise, scan, switchMap} from 'rxjs/operators';
 
 import {RequestMethod, sendServerRequest, sendServerRequestAndGetHtml} from '../utils/requests';
 
@@ -92,7 +92,6 @@ export function getMissingPokedexEntries(dex: Pokedex): Observable<PokedexEntry>
  * @param dex The dex that a Pokemon is potentially missing in.
  */
 function retainPreStageOfAPokemonIfMissingInDex(dex: Pokedex) {
-    console.log("Getting Pokedex...");
     return mergeMap(([preStage, pokemon]) => {
             if (!pokemon.getDexValue(dex) && !pokemon.eggs && !preStage.name.includes('???')) {
                 return Array.of(preStage);
@@ -153,13 +152,17 @@ export function getPokemonFromField(user: String, fieldId: number): Observable<s
     );
 }
 
-export function getPokemonWorthEvolvingFromUser(user: string) {
-    const pokemonFromUser = getFieldsFromUser(user).pipe(
-        mergeMap(field => {
-            return getPokemonFromField(user, field.id);
-        }),
-        distinct()
+export function getDistinctSpecies(): Observable<string> {
+    const requestURL = 'https://pokefarm.com/fields/survey';
+    return sendServerRequest<string>(requestURL, RequestMethod.Post).pipe(
+        map(body => JSON.parse(body).survey as Array<Array<string>>),
+        mergeMap(arr => arr),
+        map(arr => arr[1])
     );
+}
+
+export function getPokemonWorthEvolvingFromUser() {
+    const pokemonFromUser = getDistinctSpecies()
 
     return getPreStageOfMissingPokedexEntries(Pokedex.pkmn).pipe(
         map(entry => entry.name),
@@ -169,7 +172,7 @@ export function getPokemonWorthEvolvingFromUser(user: string) {
             [new Set(), new Set()]
         ),
         map(([dupes]) => dupes),
-        last(), //TODO: Doesn't work anymore
-        tap(console.log),
+        concatMap(a => from(a)),
+        distinct()
     );
 }
