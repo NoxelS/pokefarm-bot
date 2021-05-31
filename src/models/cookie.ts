@@ -1,12 +1,15 @@
 import { parse } from 'cookie';
+import { config } from 'dotenv';
 import moment from 'moment';
-import fetch from 'node-fetch';
 import { Observable } from 'rxjs';
 
 import { log } from '../shared/logger';
 import { RequestMethod } from '../utils/requests';
 
 
+const fetch = require('sync-fetch');
+
+config();
 export interface PokefarmCookie {
     PFQSID: string;
     expires: string;
@@ -50,9 +53,12 @@ export function getCookie(): Observable<PFQSID> {
  */
 export function login(): Observable<PokefarmCookie> {
     const [username, password] = [process.env.pfqusername, process.env.pfqpassword];
+    if (!(username && password)) {
+        throw new Error('Username and Password is missing.');
+    }
     log(`Logging in with ${username} - ${password}`);
     return new Observable(observer => {
-        fetch('https://pokefarm.com/index/login', {
+        const res = fetch('https://pokefarm.com/index/login', {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
                 Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -65,24 +71,16 @@ export function login(): Observable<PokefarmCookie> {
             method: RequestMethod.Post,
             // TODO: allow twofa
             body: `{"username":"${username}","password":"${password}","twofa":""}`
-        })
-            .catch(err => {
-                observer.error(err);
-            })
-            .then(res => {
-                if (!!res) {
-                    const cookie = parse(res.headers.get('set-cookie') || '');
-                    if (cookie && cookie.PFQSID && cookie.expires) {
-                        observer.next(cookie as unknown as PokefarmCookie);
-                    } else {
-                        observer.error('There was an error while logging in');
-                    }
-                } else {
-                    observer.error('There was an error while logging in');
-                }
-            })
-            .finally(() => {
-                observer.complete();
-            });
+        });
+
+        if (!!res) {
+            const cookie = parse(res.headers.get('set-cookie') || '');
+            if (cookie && cookie.PFQSID && cookie.expires) {
+                observer.next(cookie as unknown as PokefarmCookie);
+            }
+        } else {
+            observer.error('There was an error while logging in');
+        }
+        observer.complete();
     });
 }

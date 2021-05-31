@@ -2,9 +2,11 @@ import exp from 'constants';
 import * as dotenv from 'dotenv';
 import { Agent } from 'https';
 import fetch from 'node-fetch';
-import { concatMap, map, scan, switchMap, tap } from 'rxjs/operators';
+import { Observable } from 'rxjs';
+import { map, switchMap, tap } from 'rxjs/operators';
 
 import { BerryTypeEnum, getBerryByTaste } from '../shared/items.const';
+import { log } from '../shared/logger';
 import { RequestMethod, sendServerRequest } from '../utils/requests';
 import { getClickBackUsernames, getPokemonsInPartyFromUser, Pokemon } from './party.interacter';
 
@@ -12,7 +14,6 @@ import { getClickBackUsernames, getPokemonsInPartyFromUser, Pokemon } from './pa
 dotenv.config();
 
 export function interactWithMonster(monsterid: string, berry: BerryTypeEnum) {
-    console.log('Feeding mon');
     return sendServerRequest<string>(
         'https://pokefarm.com/summary/interact',
         RequestMethod.Post,
@@ -33,56 +34,35 @@ export class InteractionBody {
     // TODO: Find out what this field is for
     ismulticlick = true;
 
-    // TODO: Find out what this field is for
-    returnformat = 'party';
+    returnformat;
 
-    constructor(pokemons: Pokemon[]) {
+    constructor(pokemons: Pokemon[], party = false) {
+        this.ismulticlick = !party;
+        if(party) {
+            this.returnformat = "party";
+        }
         this.pid = pokemons.map(pokemon => ({ pid: pokemon.monsterid, berry: getBerryByTaste(pokemon.taste) }));
     }
 }
 
-export async function interactWithMonsterAsync(monsterid: string, berry: BerryTypeEnum) {
-    console.log(process.env.PFQSID);
-    const res = await fetch('https://pokefarm.com/summary/interact', {
-        headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:88.0) Gecko/20100101 Firefox/88.0',
-            Accept: 'application/json, text/javascript, */*; q=0.01',
-            'Accept-Language': 'de,en-US;q=0.7,en;q=0.3',
-            'Content-Type': 'application/json',
-            'X-Requested-With': 'Love',
-            'Sec-GPC': '1',
-            Pragma: 'no-cache',
-            'Cache-Control': 'no-cache',
-            cookie: `PFQSID=${process.env.PFQSID}`
-        },
-        body: `{"berry":null,"pid":[{"pid":"${monsterid}","berry":"${berry}"}],"ismulticlick":true,"returnformat":"party"}`,
-        method: 'POST',
-        agent: httpsAgent
-    }).catch(err => {
-        // console.log(err);
-    });
-
-    if (!!res) {
-        const body = await res.text();
-        return JSON.parse(body).ok;
-    }
-    return !!(res as any);
-}
-
-export function interactWithMonsterList(list: Pokemon[]) {
+export function interactWithMonsterList(list: Pokemon[], party?: boolean): Observable<{ ok: boolean; exbars: string; error: string }> {
     return sendServerRequest<{ ok: boolean; error: string }>(
         'https://pokefarm.com/summary/interact',
         RequestMethod.Post,
-        JSON.stringify(new InteractionBody(list))
+        JSON.stringify(new InteractionBody(list, party))
+    ).pipe(
+        map(res => JSON.parse(res as any)),
+        tap(res => {
+            log(`Interacted [${res.ok ? 'successful' : 'failed'}] with a field of ${list.length} pokemons.`);
+        })
     );
 }
 
 /** Gets all users that can recive a clickback and interacts with all party members */
 export function interactWithAllClickbackMonster() {
+    console.log("Switch back");
     return getClickBackUsernames().pipe(
-        concatMap(getPokemonsInPartyFromUser),
-        scan((acc, value) => [...acc, ...value]),
-        switchMap(interactWithMonsterList),
-        tap(console.log)
-    )
+        switchMap(user => getPokemonsInPartyFromUser(user)),
+        switchMap(pokemons => interactWithMonsterList(pokemons, true))
+    );
 }

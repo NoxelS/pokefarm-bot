@@ -8,7 +8,7 @@
     "build": "webpack --mode production",
     "lint": "eslint src/* --ext .ts",
     "service": "nodemon",
-    "start": "node dist/main.js",
+    "start": "concurrently \"node ./dist/utility.main.js\" \"node ./dist/interactions.main.js\"",
     "watch": "tsc -w"
   },
   "author": "Schwabenland, Weber <noel@schwabenland.ch>",
@@ -17,12 +17,14 @@
     "@types/cookie": "^0.4.0",
     "@types/moment": "^2.13.0",
     "@types/node-fetch": "^2.5.10",
+    "concurrently": "^6.2.0",
     "cookie": "^0.4.1",
     "log-to-file": "^2.0.2",
     "moment": "^2.29.1",
     "node-fetch": "^2.6.1",
     "node-html-parser": "^3.3.4",
-    "rxjs": "^7.1.0"
+    "rxjs": "^7.1.0",
+    "sync-fetch": "^0.3.0"
   },
   "devDependencies": {
     "@types/node": "^15.6.1",

@@ -1,7 +1,9 @@
-import {Observable} from 'rxjs';
-import {filter, map, mergeMap, pairwise, switchMap} from 'rxjs/operators';
-import {RequestMethod, sendServerRequest, sendServerRequestAndGetHtml} from '../utils/requests';
-import parse from "node-html-parser";
+import parse from 'node-html-parser';
+import { Observable } from 'rxjs';
+import { filter, map, mergeMap, pairwise, switchMap } from 'rxjs/operators';
+
+import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '../utils/requests';
+
 
 /**
  * Maps the five Pokedexes (Pokedices?) to the array index they have in the PokeFarm code
@@ -135,7 +137,6 @@ export class Field {
 
 export function getFieldsFromUser(user: String): Observable<Field> {
     const requestURL = 'https://pokefarm.com/fields/fieldlist';
-    console.log(user);
     return sendServerRequest<string>(requestURL, RequestMethod.Post, `{uid: "${user}"}`).pipe(
         switchMap(body => JSON.parse(body).fields),
         map(field => Field.fromJSON(field))

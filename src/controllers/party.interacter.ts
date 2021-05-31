@@ -6,14 +6,6 @@ import { BerryTaste } from '../shared/items.const';
 import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '../utils/requests';
 
 
-export function interactWith10Parties() {
-    return getListOfOnlineUsers().pipe(
-        map(users => {
-            console.log(users);
-        })
-    );
-}
-
 // TODO: Expand
 export interface User {
     url: string;
@@ -25,6 +17,10 @@ export interface Pokemon {
     isEgg: boolean;
     taste: BerryTaste;
     name: string;
+}
+
+export interface PokemonWithField extends Pokemon {
+    fieldid: string;
 }
 
 export function getListOfOnlineUsers() {
@@ -49,9 +45,9 @@ export function getPokemonsInPartyFromUser(userurl: string): Observable<Pokemon[
             return r.querySelectorAll('[data-pid]').map(monster => {
                 return <Pokemon>{
                     monsterid: monster.attributes['data-pid'],
-                    isEgg: monster.querySelector('.summarylink').innerText.indexOf('&lt;Egg>') !== -1,
+                    isEgg: monster.querySelector('.summarylink')?.innerText.indexOf('&lt;Egg>') !== -1,
                     taste: monster.querySelector('[data-up]')?.attributes['data-up'] || BerryTaste.any,
-                    name: monster.querySelector('.summarylink').innerText.replace('&lt;Egg>', 'Egg')
+                    name: monster.querySelector('.summarylink')?.innerText.replace('&lt;Egg>', 'Egg')
                 };
             });
         })
@@ -61,7 +57,7 @@ export function getPokemonsInPartyFromUser(userurl: string): Observable<Pokemon[
 export function getClickBackUsernames() {
     return sendServerRequestAndGetHtml('https://pokefarm.com/user/~clickback', RequestMethod.Get).pipe(
         map(HTML => {
-            return HTML.querySelectorAll('[data-name]').map(element => element.firstChild.innerText);
+            return HTML.querySelectorAll('[data-name]').map(element => element.firstChild?.innerText);
         }),
         switchMap(users => from(users).pipe(filter(username => username.split('')[0] !== ' ')))
     );

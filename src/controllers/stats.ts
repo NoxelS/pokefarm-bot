@@ -3,7 +3,7 @@ import { map } from 'rxjs/operators';
 import { RequestMethod, sendServerRequestAndGetHtml } from '../utils/requests';
 
 
-interface UserStats {
+export interface UserStats {
     credits: number;
     creditsGold: number;
     creditsBlue: number;

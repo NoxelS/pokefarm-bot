@@ -1,5 +1,5 @@
 import { from, Observable } from 'rxjs';
-import { filter, map, switchMap } from 'rxjs/operators';
+import { map, switchMap } from 'rxjs/operators';
 
 import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '../utils/requests';
 
@@ -10,7 +10,7 @@ export function handleScourMissions(): Observable<{ ok: boolean; error: string }
         switchMap(pokemonIds => from(pokemonIds)),
         switchMap(pokemonId => {
             return sendServerRequest<{ ok: boolean; error: string }>('https://pokefarm.com/scour/retrieve', RequestMethod.Post, `{"pid":"${pokemonId}"}`).pipe(
-                filter(res => res.ok),
+                // filter(res => res.ok),
                 switchMap(_ => startScourMission(pokemonId))
             );
         })
