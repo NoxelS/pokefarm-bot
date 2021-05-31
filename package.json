@@ -9,7 +9,10 @@
     "lint": "eslint src/* --ext .ts",
     "service": "nodemon",
     "start": "concurrently \"node ./dist/utility.main.js\" \"node ./dist/interactions.main.js\"",
-    "watch": "tsc -w"
+    "watch": "tsc -w",
+    "compile": "tsc",
+    "interaction": "node ./dist/interactions.main.js",
+    "utility": "node ./dist/utility.main.js"
   },
   "author": "Schwabenland, Weber <noel@schwabenland.ch>",
   "license": "MIT",
