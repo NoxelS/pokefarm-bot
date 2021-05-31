@@ -1,6 +1,4 @@
+import { interactWithPlayerDBArray } from './controllers/database';
 
 
-import { interactWithPlayerDB } from './controllers/database';
-
-
-interactWithPlayerDB().subscribe();
+interactWithPlayerDBArray().subscribe();

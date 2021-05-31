@@ -31,7 +31,15 @@ const fastHandler = interval(veryfast)
     .pipe(
         switchMap(() => skipInteractionWarning()),
         switchMap(() => getUserStats().pipe(tap(logStats))),
-        switchMap(() => collectTrainingBags().pipe(filter(res => res.ok), tap((res) => {log('Collected training bags!')}), retry(1)))
+        switchMap(() =>
+            collectTrainingBags().pipe(
+                filter(res => res.ok),
+                tap(res => {
+                    log('Collected training bags!');
+                }),
+                retry(1)
+            )
+        )
     )
     .subscribe();
 
@@ -40,6 +48,11 @@ const slowHandler = interval(fast)
     .pipe(
         switchMap(() => hatchPartyEggs()),
         switchMap(() => interactWithAllClickbackMonster().pipe(tap(log))),
-        switchMap(() => handleScourMissions().pipe(filter(res => res.ok),tap(log)))
+        switchMap(() =>
+            handleScourMissions().pipe(
+                filter(res => res.ok),
+                tap(log)
+            )
+        )
     )
     .subscribe();

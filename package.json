@@ -20,6 +20,7 @@
     "@types/cookie": "^0.4.0",
     "@types/moment": "^2.13.0",
     "@types/node-fetch": "^2.5.10",
+    "array-shuffle": "^2.0.0",
     "concurrently": "^6.2.0",
     "cookie": "^0.4.1",
     "log-to-file": "^2.0.2",
