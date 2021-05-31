@@ -10,9 +10,23 @@ import { getFields } from './fields';
 export function checkEvoRequirements(monsterid: string) {
     return sendServerRequestAndGetHtml('https://pokefarm.com/summary/evocheck', RequestMethod.Post, true, `{\"id\":\"${monsterid}\"}`).pipe(
         map(body => {
-            console.log(body.querySelectorAll('p').map(p => p.innerText).filter(text => text.indexOf(': ') !== -1).map(r => r.split(': ')[1]));
+            console.log(
+                body
+                    .querySelectorAll('p')
+                    .map(p => p.innerText)
+                    .filter(text => text.indexOf(': ') !== -1)
+                    .map(r => r.split(': ')[1])
+            );
         })
-    )
+    );
+}
+
+export function evolvePokemon(pokemonid: string) {
+    return sendServerRequest(
+        'https://pokefarm.com/summary/evolve',
+        RequestMethod.Post,
+        `{\"id\":\"${pokemonid}\",\"expect\":744,\"returnmode\":\"simple\",\"confirmed\":true}")`
+    );
 }
 
 function adoptEgg(newEggBody: any) {
