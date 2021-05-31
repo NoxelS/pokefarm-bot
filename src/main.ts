@@ -1,29 +1,34 @@
-import * as dotenv from 'dotenv';
+import { distinct, last, map, mergeMap, mergeWith, scan } from 'rxjs/operators';
 
-import { getUserStats } from './controllers/stats';
+import { getFieldsFromUser, getPokemonFromField, getPreStageOfMissingPokedexEntries, Pokedex } from './controllers/dexchecker';
 
-
-dotenv.config();
-
-getUserStats().subscribe(res => {
-    console.log(res);
-})
-
-// from(['1', '2', '3'])
-//     .pipe(
-//         tap(a => {
-//             console.log(a);
-//         }),
-//         concatMap(pokemon => interactWithMonster('a', getBerryByTaste(BerryTaste.any)))
-//     )
-//     .subscribe(res => console.log(res.ok));
 
 // getListOfOnlineUsers()
 //     .pipe(
-//         take(3),
 //         map(user => user.url),
-//         mergeMap(getPokemonsInPartyFromUser)
+//         take(10),
+//         mergeMap(getPokemonsInPartyFromUser),
+//         // mergeMap(monsterid => interactWithMonster(monsterid, BerryTypeEnum.aspear)),
+//         count()
 //     )
-//     .subscribe(async pokemon => {
-//         const ok = interactWithMonsterList(pokemon);
-//     });
+//     .subscribe(console.log, _ => console.log(_));
+
+
+const user = "Skiddie";
+const pokemonFromUser = getFieldsFromUser(user).pipe(
+    mergeMap(field => {
+        return getPokemonFromField(user, field.id);
+    }),
+    distinct()
+);
+
+getPreStageOfMissingPokedexEntries(Pokedex.pkmn).pipe(
+    map(entry => entry.name),
+    mergeWith(pokemonFromUser),
+    scan(([dupes, uniques], next) =>
+            [uniques.has(next) ? dupes.add(next) : dupes, uniques.add(next)],
+        [new Set(), new Set()]
+    ),
+    map(([dupes]) => dupes),
+    last()
+).subscribe(console.log);
