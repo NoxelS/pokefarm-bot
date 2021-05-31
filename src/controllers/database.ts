@@ -35,7 +35,7 @@ export function interactWithPlayerDB() {
 
 /** Fast for small user lsits */
 export function interactWithPlayerDBArray() {
-    const data = shuffle(readFileSync('./user-list.db', {encoding: "utf-8"}).split('\r\n'));
+    const data = shuffle(readFileSync('./user-list.db', {encoding: "utf-8"}).split(/\r?\n/g));
     log(`Found ${data.length} users in file.`)
     return from(data).pipe(
         mergeMap(userurl => {
@@ -49,7 +49,7 @@ export function interactWithPlayerDBArray() {
 
 /** Saves current online users in database */
 export function saveCurrentOnlineUsers() {
-    const data = readFileSync('./user-list.db', {encoding: "utf-8"}).split('\r\n');
+    const data = readFileSync('./user-list.db', {encoding: "utf-8"}).split(/\r?\n/g);
     return getListOfOnlineUsers().pipe(
         tap(user => {
             if(!data.includes(user.url)) {
