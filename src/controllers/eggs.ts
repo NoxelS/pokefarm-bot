@@ -6,6 +6,15 @@ import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '.
 import { getFields } from './fields';
 
 
+/** TODO: only filters out text! Needs some mapping to understand what types of requirements are possible */
+export function checkEvoRequirements(monsterid: string) {
+    return sendServerRequestAndGetHtml('https://pokefarm.com/summary/evocheck', RequestMethod.Post, true, `{\"id\":\"${monsterid}\"}`).pipe(
+        map(body => {
+            console.log(body.querySelectorAll('p').map(p => p.innerText).filter(text => text.indexOf(': ') !== -1).map(r => r.split(': ')[1]));
+        })
+    )
+}
+
 function adoptEgg(newEggBody: any) {
     return sendServerRequest('https://pokefarm.com/lab/adopt', RequestMethod.Post, newEggBody);
 }
@@ -65,7 +74,7 @@ export function hatchPartyEggs() {
                         return getFields(process.env.pfqusername as any).pipe(
                             map(fields => {
                                 if (!!fields) {
-                                    const nextTempFields = fields.filter(field => (field.name == "Temp" && Number(field.count) < 40));
+                                    const nextTempFields = fields.filter(field => field.name == 'Temp' && Number(field.count) < 40);
                                     return nextTempFields.length > 0 ? nextTempFields[0].id : fields.filter(field => Number(field.count) < 40)[0].id;
                                 } else {
                                     log('No field with name "Temp" was found.');
