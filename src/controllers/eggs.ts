@@ -1,9 +1,9 @@
-import { from } from 'rxjs';
-import { concatMap, filter, map, mergeMap, switchMap, tap } from 'rxjs/operators';
+import {from} from 'rxjs';
+import {concatMap, filter, map, mergeMap, switchMap, tap} from 'rxjs/operators';
 
-import { log } from '../shared/logger';
-import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '../utils/requests';
-import { getFields } from './fields';
+import {log} from '../shared/logger';
+import {RequestMethod, sendServerRequest, sendServerRequestAndGetHtml} from '../utils/requests';
+import {getFields} from './fields';
 
 
 function adoptEgg(newEggBody: any) {
@@ -65,9 +65,9 @@ export function hatchPartyEggs() {
                         return getFields(process.env.pfqusername as any).pipe(
                             map(fields => {
                                 if (!!fields) {
-                                    return fields.filter(field => Number(field.count) < 40)[0].id;
+                                    return fields.filter(field => (field.name == "Temp" && Number(field.count) < 40))[0].id;
                                 } else {
-                                    log('No empty field was found.');
+                                    log('No field with name "Temp" was found.');
                                     return 'null';
                                 }
                             }),
