@@ -5,6 +5,7 @@ import { collectTrainingBags } from './controllers/dojo';
 import { hatchPartyEggs } from './controllers/eggs';
 import { interactWithAllClickbackMonster } from './controllers/interact';
 import { handleScourMissions } from './controllers/scours';
+import { buyAlbinoRadarIfPossibleAndSellIt } from './controllers/shop';
 import { getUserStats } from './controllers/stats';
 import { skipInteractionWarning } from './shared/interaction-warning';
 import { log, logStats } from './shared/logger';
@@ -56,3 +57,8 @@ const slowHandler = interval(fast)
         )
     )
     .subscribe();
+
+/** Shop actions */
+const shopActions = interval(fast)
+    .pipe(switchMap(() => buyAlbinoRadarIfPossibleAndSellIt()))
+    .subscribe(_ => log(`Bought and sold an albino radar!`));
