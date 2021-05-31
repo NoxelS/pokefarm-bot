@@ -1,8 +1,8 @@
 import parse from 'node-html-parser';
-import { Observable } from 'rxjs';
-import { filter, map, mergeMap, pairwise, switchMap } from 'rxjs/operators';
+import {Observable} from 'rxjs';
+import {distinct, filter, last, map, mergeMap, mergeWith, pairwise, scan, switchMap, tap} from 'rxjs/operators';
 
-import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '../utils/requests';
+import {RequestMethod, sendServerRequest, sendServerRequestAndGetHtml} from '../utils/requests';
 
 
 /**
@@ -92,6 +92,7 @@ export function getMissingPokedexEntries(dex: Pokedex): Observable<PokedexEntry>
  * @param dex The dex that a Pokemon is potentially missing in.
  */
 function retainPreStageOfAPokemonIfMissingInDex(dex: Pokedex) {
+    console.log("Getting Pokedex...");
     return mergeMap(([preStage, pokemon]) => {
             if (!pokemon.getDexValue(dex) && !pokemon.eggs && !preStage.name.includes('???')) {
                 return Array.of(preStage);
@@ -137,7 +138,7 @@ export class Field {
 
 export function getFieldsFromUser(user: String): Observable<Field> {
     const requestURL = 'https://pokefarm.com/fields/fieldlist';
-    return sendServerRequest<string>(requestURL, RequestMethod.Post, `{uid: "${user}"}`).pipe(
+    return sendServerRequest<string>(requestURL, RequestMethod.Post, `{"uid": "${user}"}`).pipe(
         switchMap(body => JSON.parse(body).fields),
         map(field => Field.fromJSON(field))
     );
@@ -149,5 +150,26 @@ export function getPokemonFromField(user: String, fieldId: number): Observable<s
         map(body => parse(JSON.parse(body).html)),
         switchMap(html => html.querySelectorAll(".fieldmontip")), //TODO you can easily get ".fieldmon" here
         map(fieldmon => fieldmon.childNodes[3].childNodes[3].rawText.trim()) // TODO and then getAttribute("data-pid") here
+    );
+}
+
+export function getPokemonWorthEvolvingFromUser(user: string) {
+    const pokemonFromUser = getFieldsFromUser(user).pipe(
+        mergeMap(field => {
+            return getPokemonFromField(user, field.id);
+        }),
+        distinct()
+    );
+
+    return getPreStageOfMissingPokedexEntries(Pokedex.pkmn).pipe(
+        map(entry => entry.name),
+        mergeWith(pokemonFromUser),
+        scan(([dupes, uniques], next) =>
+                [uniques.has(next) ? dupes.add(next) : dupes, uniques.add(next)],
+            [new Set(), new Set()]
+        ),
+        map(([dupes]) => dupes),
+        last(), //TODO: Doesn't work anymore
+        tap(console.log),
     );
 }
