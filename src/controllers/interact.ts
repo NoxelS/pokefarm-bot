@@ -1,11 +1,12 @@
+import exp from 'constants';
 import * as dotenv from 'dotenv';
 import { Agent } from 'https';
 import fetch from 'node-fetch';
-import { map } from 'rxjs/operators';
+import { concatMap, map, scan, switchMap, tap } from 'rxjs/operators';
 
 import { BerryTypeEnum, getBerryByTaste } from '../shared/items.const';
 import { RequestMethod, sendServerRequest } from '../utils/requests';
-import { Pokemon } from './party.interacter';
+import { getClickBackUsernames, getPokemonsInPartyFromUser, Pokemon } from './party.interacter';
 
 
 dotenv.config();
@@ -21,6 +22,24 @@ export function interactWithMonster(monsterid: string, berry: BerryTypeEnum) {
 
 const httpsAgent = new Agent({ keepAlive: true });
 
+/** The body which needs to be sent along with an interaction request */
+export class InteractionBody {
+    // TODO: Find out what this field is for
+    berry = null;
+
+    // Stores monsterid and berry to feed
+    pid: { pid: string; berry: string }[] = [];
+
+    // TODO: Find out what this field is for
+    ismulticlick = true;
+
+    // TODO: Find out what this field is for
+    returnformat = 'party';
+
+    constructor(pokemons: Pokemon[]) {
+        this.pid = pokemons.map(pokemon => ({ pid: pokemon.monsterid, berry: getBerryByTaste(pokemon.taste) }));
+    }
+}
 
 export async function interactWithMonsterAsync(monsterid: string, berry: BerryTypeEnum) {
     console.log(process.env.PFQSID);
@@ -50,11 +69,20 @@ export async function interactWithMonsterAsync(monsterid: string, berry: BerryTy
     return !!(res as any);
 }
 
-export async function interactWithMonsterList(list: Pokemon[]) {
-    console.log(list);
-    for (const pokemon of list) {
-        await setTimeout(_ => _, 1000)
-        const ok = await interactWithMonsterAsync(pokemon.monsterid, getBerryByTaste(pokemon.taste));
-        console.log(ok);
-    }
+export function interactWithMonsterList(list: Pokemon[]) {
+    return sendServerRequest<{ ok: boolean; error: string }>(
+        'https://pokefarm.com/summary/interact',
+        RequestMethod.Post,
+        JSON.stringify(new InteractionBody(list))
+    );
+}
+
+/** Gets all users that can recive a clickback and interacts with all party members */
+export function interactWithAllClickbackMonster() {
+    return getClickBackUsernames().pipe(
+        concatMap(getPokemonsInPartyFromUser),
+        scan((acc, value) => [...acc, ...value]),
+        switchMap(interactWithMonsterList),
+        tap(console.log)
+    )
 }
