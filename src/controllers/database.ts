@@ -3,9 +3,10 @@ import { appendFileSync, createReadStream, readFileSync } from 'fs';
 import { resolve } from 'path';
 import { createInterface } from 'readline';
 import { from, Observable } from 'rxjs';
-import { filter, mergeMap, switchMap, tap } from 'rxjs/operators';
+import { filter, map, mergeMap, switchMap, tap } from 'rxjs/operators';
 
 import { log } from '../shared/logger';
+import { RequestMethod, sendServerRequestAndGetHtml } from '../utils/requests';
 import { getAllFieldPokemonsFromUser } from './fields';
 import { interactWithMonsterList } from './interact';
 import { getListOfOnlineUsers, User } from './party.interacter';
@@ -57,4 +58,24 @@ export function saveCurrentOnlineUsers() {
             }
         })
     )
+}
+
+export function saveBestHoardUsers() {
+    const data = readFileSync('./user-list.db', {encoding: "utf-8"}).split(/\r?\n/g);
+    const pages = [];
+    // On rank 50 there are still approx. 2k pokemons per user
+    for (let i = 50; i < 100; i++) {
+        pages.push(i);
+    }
+    return from(pages).pipe(
+        switchMap(page => sendServerRequestAndGetHtml(`https://pokefarm.com/stats/hoard/${page}`, RequestMethod.Get)),
+        map(body => body.querySelectorAll('.userlink0').map(e => e.innerText)),
+        switchMap(users => from(users)),
+        tap(user => {
+            if(!data.includes(user)) {
+                appendFileSync ('./user-list.db', user + '\r\n');
+                data.push(user);
+            }
+        }
+    ))
 }
