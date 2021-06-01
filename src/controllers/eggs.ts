@@ -25,7 +25,29 @@ export function evolvePokemon(pokemonid: string, intoid: string) {
     return sendServerRequest(
         'https://pokefarm.com/summary/evolve',
         RequestMethod.Post,
-        `{\"id\":\"${pokemonid}\",\"expect\":\"${intoid}\",\"returnmode\":\"simple\",\"confirmed\":true}")`
+        `{"id":"${pokemonid}","expect":"${intoid}","returnmode":"simple","confirmed":true}`
+    );
+}
+
+export function evolveAllPokemons() {
+    const nextPages: (number | null)[] = [null];
+    for (let i = 0; i < 40; i++) {
+        nextPages.push(i * 100);
+    }
+
+    return from(nextPages).pipe(
+        switchMap(nextpage =>
+            sendServerRequest('https://pokefarm.com/farm/evolutions', RequestMethod.Post, `{\"start\":${nextpage}}`).pipe(
+                filter(res => JSON.parse(res as any).ok && JSON.parse(res as any).evolutions?.length > 0),
+                map(res => JSON.parse(res as any).evolutions) // TODO: make type
+            )
+        ),
+        switchMap(evos => from(evos)),
+        tap(evo => {
+            console.log((evo as any).id, (evo as any).formeid);
+        }),
+        switchMap(evo => evolvePokemon((evo as any).id, (evo as any).formeid)),
+        filter(res => JSON.parse(res as any).ok)
     );
 }
 

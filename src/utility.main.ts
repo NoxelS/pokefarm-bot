@@ -2,7 +2,7 @@ import { interval } from 'rxjs';
 import { filter, map, retry, switchMap, tap } from 'rxjs/operators';
 
 import { collectTrainingBags } from './controllers/dojo';
-import { hatchPartyEggs } from './controllers/eggs';
+import { evolveAllPokemons, hatchPartyEggs } from './controllers/eggs';
 import { interactWithAllClickbackMonster } from './controllers/interact';
 import { handleScourMissions } from './controllers/scours';
 import { buyAlbinoRadarIfPossibleAndSellIt } from './controllers/shop';
@@ -59,6 +59,13 @@ const slowHandler = interval(fast)
     .subscribe();
 
 /** Shop actions */
-const shopActions = interval(fast)
+const shopActions = interval(slow)
     .pipe(switchMap(() => buyAlbinoRadarIfPossibleAndSellIt()))
     .subscribe(_ => log(`Bought and sold an albino radar!`));
+
+/** Monster evos */
+const evos = interval(veryslow)
+    .pipe(switchMap(() => evolveAllPokemons()))
+    .subscribe(() => {
+        log('Evolved a pokemon');
+    });
