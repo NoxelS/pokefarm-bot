@@ -3,6 +3,7 @@ import { filter, map, retry, switchMap, tap } from 'rxjs/operators';
 
 import { collectTrainingBags } from './controllers/dojo';
 import { evolveAllPokemons, hatchPartyEggs } from './controllers/eggs';
+import { ddosPokerusUser } from './controllers/events';
 import { interactWithAllClickbackMonster } from './controllers/interact';
 import { handleScourMissions } from './controllers/scours';
 import { buyAlbinoRadarIfPossibleAndSellIt } from './controllers/shop';
@@ -69,3 +70,8 @@ const evos = interval(veryslow)
     .subscribe(() => {
         log('Evolved a pokemon');
     });
+
+/** Pokerus ddos */
+const pokerus = interval(fast)
+    .pipe(switchMap(() => ddosPokerusUser()))
+    .subscribe();

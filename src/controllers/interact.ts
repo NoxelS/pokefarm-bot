@@ -60,7 +60,7 @@ export function interactWithMonsterList(list: Pokemon[], party?: boolean): Obser
 
 /** Gets all users that can recive a clickback and interacts with all party members */
 export function interactWithAllClickbackMonster() {
-    console.log("Switch back");
+    log("Switch back");
     return getClickBackUsernames().pipe(
         switchMap(user => getPokemonsInPartyFromUser(user)),
         switchMap(pokemons => interactWithMonsterList(pokemons, true))
