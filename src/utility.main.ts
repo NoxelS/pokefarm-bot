@@ -1,5 +1,5 @@
 import { interval } from 'rxjs';
-import { filter, map, retry, switchMap, tap } from 'rxjs/operators';
+import { filter, retry, switchMap, tap } from 'rxjs/operators';
 
 import { collectTrainingBags } from './controllers/dojo';
 import { evolveAllPokemons, hatchPartyEggs } from './controllers/eggs';

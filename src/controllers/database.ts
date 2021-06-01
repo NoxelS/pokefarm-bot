@@ -1,4 +1,3 @@
-import exp from 'constants';
 import { appendFileSync, createReadStream, readFileSync } from 'fs';
 import { resolve } from 'path';
 import { createInterface } from 'readline';
