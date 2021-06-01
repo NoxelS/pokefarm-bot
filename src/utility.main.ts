@@ -26,7 +26,7 @@ import { log, logStats } from './shared/logger';
  */
 
 /** Controll intervals */
-const [veryfast, fast, slow, veryslow] = [5, 10, 60, 10 * 60].map(seconds => seconds * 1000);
+const [veryfast, fast, slow, veryslow] = [5, 10, 60, 15 * 60].map(seconds => seconds * 1000);
 
 /** Fast interval  */
 const fastHandler = interval(veryfast)
@@ -49,13 +49,7 @@ const fastHandler = interval(veryfast)
 const slowHandler = interval(fast)
     .pipe(
         switchMap(() => hatchPartyEggs()),
-        switchMap(() => interactWithAllClickbackMonster().pipe(tap(log))),
-        switchMap(() =>
-            handleScourMissions().pipe(
-                filter(res => res.ok),
-                tap(log)
-            )
-        )
+        switchMap(() => interactWithAllClickbackMonster().pipe(tap(log)))
     )
     .subscribe();
 
@@ -74,4 +68,15 @@ const evos = interval(veryslow)
 /** Pokerus ddos */
 const pokerus = interval(fast)
     .pipe(switchMap(() => ddosPokerusUser()))
+    .subscribe();
+
+const scour = interval(veryslow)
+    .pipe(
+        switchMap(() =>
+            handleScourMissions().pipe(
+                filter(res => res.ok),
+                tap(log)
+            )
+        )
+    )
     .subscribe();
