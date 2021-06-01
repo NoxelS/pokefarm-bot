@@ -6,18 +6,18 @@ import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '.
 
 export function collectTrainingBags(): Observable<{ ok: boolean; error: string }> {
     const dojoURL = 'https://pokefarm.com/dojo/training/collect';
-    return getTrainingsMonsterID().pipe(
+    return getTrainingsMonsterIDs().pipe(
         switchMap(id => {
             return sendServerRequest<string>(dojoURL, RequestMethod.Post, `{"id":"${id}"}`).pipe(map(body => JSON.parse(body)));
         })
     );
 }
 
-export function getTrainingsMonsterID(): Observable<string> {
+export function getTrainingsMonsterIDs(): Observable<string> {
     const dojoURL = 'https://pokefarm.com/dojo/training';
     return sendServerRequestAndGetHtml(dojoURL, RequestMethod.Get).pipe(
-        map(html => {
-            return html.querySelectorAll('[data-pid]')[0].attributes['data-pid'];
+        switchMap(html => {
+            return html.querySelectorAll('[data-pid]').map(pokemon => pokemon.attributes['data-pid']);
         })
     );
 }
