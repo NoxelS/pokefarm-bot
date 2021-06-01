@@ -1,4 +1,5 @@
-import { filter, map, retry, switchMap, tap } from 'rxjs/operators';
+import { EMPTY } from 'rxjs';
+import { catchError, filter, map, retry, switchMap, tap } from 'rxjs/operators';
 
 import { log } from '../shared/logger';
 import { RequestMethod, sendServerRequestAndGetHtml } from '../utils/requests';
@@ -16,16 +17,23 @@ export function ddosPokerusUser() {
             log(`Ddosing new pokerus host ${user}`);
         }),
         switchMap(userurl => {
-            return getAllFieldPokemonsFromUser({ url: userurl, name: userurl }).pipe(
-                switchMap(mons => {
-                    return interactWithMonsterList(mons).pipe(
-                        tap(res => {
-                            if (!res.ok) throw res;
-                        }),
-                        retry(3) // Because this is the only fast interaction in utlity, the requests will fail a lot
-                    );
-                })
-            );
+            return getAllFieldPokemonsFromUser({ url: userurl, name: userurl })
+                .pipe(
+                    switchMap(mons => {
+                        return interactWithMonsterList(mons).pipe(
+                            tap(res => {
+                                if (!res.ok) throw res;
+                            }),
+                            retry(3) // Because this is the only fast interaction in utlity, the requests will fail a lot
+                        );
+                    })
+                )
+                .pipe(
+                    catchError(err => {
+                        log('Failed to interact with pokerus host. Retrying...');
+                        return EMPTY;
+                    })
+                );
         })
     );
 }
