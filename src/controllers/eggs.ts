@@ -21,11 +21,11 @@ export function checkEvoRequirements(monsterid: string) {
     );
 }
 
-export function evolvePokemon(pokemonid: string) {
+export function evolvePokemon(pokemonid: string, intoid: string) {
     return sendServerRequest(
         'https://pokefarm.com/summary/evolve',
         RequestMethod.Post,
-        `{\"id\":\"${pokemonid}\",\"expect\":744,\"returnmode\":\"simple\",\"confirmed\":true}")`
+        `{\"id\":\"${pokemonid}\",\"expect\":\"${intoid}\",\"returnmode\":\"simple\",\"confirmed\":true}")`
     );
 }
 
