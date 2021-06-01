@@ -11,11 +11,19 @@ var lastPokerusUser: string;
 export function ddosPokerusUser() {
     return getPokerusUser().pipe(
         filter(user => user !== lastPokerusUser),
-        tap(user => {lastPokerusUser = user; log(`Ddosing new pokerus host ${user}`)}),
+        tap(user => {
+            lastPokerusUser = user;
+            log(`Ddosing new pokerus host ${user}`);
+        }),
         switchMap(userurl => {
             return getAllFieldPokemonsFromUser({ url: userurl, name: userurl }).pipe(
                 switchMap(mons => {
-                    return interactWithMonsterList(mons).pipe(retry(3));
+                    return interactWithMonsterList(mons).pipe(
+                        tap(res => {
+                            if (!res.ok) throw res;
+                        }),
+                        retry(3) // Because this is the only fast interaction in utlity, the requests will fail a lot
+                    );
                 })
             );
         })
