@@ -1,5 +1,5 @@
-import { from } from 'rxjs';
-import { concatMap, filter, map, mergeMap, switchMap, tap } from 'rxjs/operators';
+import { from, Observable } from 'rxjs';
+import { concatMap, filter, first, map, mergeMap, retryWhen, switchMap, tap } from 'rxjs/operators';
 
 import { log } from '../shared/logger';
 import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '../utils/requests';
@@ -51,8 +51,12 @@ export function evolveAllPokemons() {
     );
 }
 
-function adoptEgg(newEggBody: any) {
+function adoptEggFromLab(newEggBody: any) {
     return sendServerRequest('https://pokefarm.com/lab/adopt', RequestMethod.Post, newEggBody);
+}
+
+function adoptEggFromShelter(newEggBody: any) {
+    return sendServerRequest('https://pokefarm.com/shelter/adopt', RequestMethod.Post, newEggBody);
 }
 
 function moveHatchedPokemon(eggID: string, fieldID: string) {
@@ -63,7 +67,7 @@ function hatchEgg(eggID: string) {
     return sendServerRequest('https://pokefarm.com/summary/hatch', RequestMethod.Post, `{"id":"${eggID}"}`);
 }
 
-function getNewEgg() {
+function getNewEggFromLab() {
     return sendServerRequest<string>('https://pokefarm.com/lab/eggs', RequestMethod.Post, '{}').pipe(
         map(body => {
             const eggData = JSON.parse(body);
@@ -82,7 +86,55 @@ function getNewEgg() {
 }
 
 function adoptNewEgg() {
-    return getNewEgg().pipe(switchMap(adoptEgg));
+    //TODO check shelter first
+    //return getNewEggFromShelter().pipe(switchMap(adoptEggFromShelter));
+    //switchIfEmpty()
+    return getNewEggFromLab().pipe(switchMap(adoptEggFromLab));
+}
+
+
+export enum Flute {
+    'first' = 'first',
+    'white' = 'white',
+    'black' = 'black'
+}
+
+export interface ShelterPokemon {
+    id: string;
+    stage: string;
+    sprite: string;
+    name: string;
+}
+
+//TODO doesnt work; should throw an error when there are no "Egg"s and reload the Shelter
+export function getNewEggFromShelter() {
+    return loadShelter(Flute.black).pipe(
+        filter(egg => egg.name === "Egg"),
+        tap(console.log),
+        first(egg => egg.name === "Eggg"),
+        retryWhen(errors =>
+            errors.pipe(
+                tap(val => console.log(`Pokemon with name "Eggg" was not found!`)),
+            )
+        )
+    );
+
+    //     map(egg => {
+    //         return `{id: "${egg.id}"}`
+    //     })
+}
+
+export function loadShelter(flute?: Flute): Observable<ShelterPokemon> {
+    const loadURL = "https://pokefarm.com/shelter/load";
+    const postBody = flute == undefined ? '' : `{"flute": "${flute}"}`;
+    return sendServerRequest(loadURL, RequestMethod.Post, postBody).pipe(
+        map(res => JSON.parse(res as any)),
+        tap(res => {
+            if (!res.ok) log("Can't load shelter: " + res.error);
+        }),
+        filter(res => res.ok),
+        switchMap(res => res.pokemon as Observable<ShelterPokemon>)
+    );
 }
 
 /** TODO: refactor */
