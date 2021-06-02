@@ -143,7 +143,7 @@ export function getNewEggFromShelter(): Observable<string> {
                 throw new Error("No new egg found");
             }
         }),
-        retryWhen(errors => errors.pipe(delay(30000), take(reload_shelter_times))),
+        retryWhen(errors => errors.pipe(delay(3000), take(reload_shelter_times))),
         tap(egg => log(`New Egg found in Shelter! Attempting to adopt...`)),
         switchMap(monArr => from(monArr)),
         filter(egg => egg.name === "Egg"),
