@@ -3,6 +3,7 @@ import { filter, map, switchMap } from 'rxjs/operators';
 
 import { log } from '../shared/logger';
 import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '../utils/requests';
+import { interactWithPlayerDBArray } from './database';
 import { getPokedex } from './dexchecker';
 import { PokemonWithField, User } from './party.interacter';
 
@@ -91,6 +92,7 @@ export function finalStageRelease() {
                     }),
 
                     switchMap(pokemon => {
+                        interactWithPlayerDBArray().subscribe();
                         return sendServerRequestAndGetHtml('https://pokefarm.com/summary/' + pokemon.monsterid, RequestMethod.Get).pipe(
                             map(htmlBody => {
                                 // Check if pokemon is in final stage
