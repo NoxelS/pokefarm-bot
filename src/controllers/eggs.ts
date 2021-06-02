@@ -99,7 +99,15 @@ function getNewEggFromLab() {
 
 export function adoptNewEgg() {
     return getNewEggFromShelter().pipe(
-        switchMap(adoptEggFromShelter)
+        switchMap(adoptEggFromShelter),
+        map(res => {
+            const result = JSON.parse(res as any);
+            console.log(result);
+            if (!result.ok) {
+                log(`Adopting Egg from Shelter failed. Getting egg from Lab...`)
+                return getNewEggFromLab().pipe(switchMap(adoptEggFromLab)).subscribe()
+            }
+        }),
     );
 }
 
@@ -117,7 +125,7 @@ export interface ShelterPokemon {
 }
 
 export function getNewEggFromShelter(): Observable<string> {
-    const reload_shelter_times = 20;
+    const reload_shelter_times = 30;
     return loadShelter(Flute.black).pipe(
         take(30),
         toArray(),
@@ -129,10 +137,10 @@ export function getNewEggFromShelter(): Observable<string> {
             }
         }),
         retry(reload_shelter_times),
+        tap(egg => log(`New Egg found in Shelter! Attempting to adopt...`)),
         switchMap(monArr => from(monArr)),
         filter(egg => egg.name === "Egg"),
         first(),
-        tap(egg => log(`Adopted new Egg form Shelter!`)),
         map(egg => {
             return `{"id": "${egg.id}"}`
         }),
@@ -147,7 +155,7 @@ export function getNewEggFromShelter(): Observable<string> {
 export function getRandomEggFromShelter(): Observable<string> {
     return loadShelter(Flute.black).pipe(
         first(),
-        tap(egg => log(`Adopted random Egg form Shelter: ${egg.name}`)),
+        tap(egg => log(`Adopting random Egg form Shelter: ${egg.name}`)),
         map(egg => {
             return `{id: "${egg.id}"}`
         }),
