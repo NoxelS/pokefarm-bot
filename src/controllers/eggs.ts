@@ -1,4 +1,4 @@
-import { from, iif, Observable } from 'rxjs';
+import { EMPTY, from, iif, Observable } from 'rxjs';
 import {
     catchError,
     concatMap,
@@ -101,26 +101,22 @@ function getNewEggFromLab() {
 export function adoptNewEgg() {
     return getAdoptionsLeft().pipe(
         switchMap(adoptionsLeft =>
-            iif(() => (adoptionsLeft > 100),
-                getNewEggFromShelter().pipe(switchMap(adoptEggFromShelter)),
+            iif(() => (adoptionsLeft > 0),
+                getNewEggFromShelter().pipe(switchMap(adoptEggFromShelter),
+                    switchMap(res => {
+                        const result = JSON.parse(res as any);
+                        console.log(result);
+                        if (!result.ok) {
+                            log(`Adopting Egg from Shelter failed. Getting egg from Lab...`)
+                            return getNewEggFromLab().pipe(switchMap(adoptEggFromLab))
+                        } else {
+                            return EMPTY
+                        }
+                    }),),
                 getNewEggFromLab().pipe(switchMap(adoptEggFromLab))
             )
         )
     )
-    //TODO: Use this fallback if the shelter adoptions do not work at all due to
-    // "Egg/Pok&eacute;mon not found. It may have been snatched by someone else. Please note that if you have two browser tabs open on the Shelter page, then it won't work!"
-
-    // return getNewEggFromShelter().pipe(
-    //     switchMap(adoptEggFromShelter),
-    //     map(res => {
-    //         const result = JSON.parse(res as any);
-    //         console.log(result);
-    //         if (!result.ok) {
-    //             log(`Adopting Egg from Shelter failed. Getting egg from Lab...`)
-    //             return getNewEggFromLab().pipe(switchMap(adoptEggFromLab)).subscribe()
-    //         }
-    //     }),
-    // );
 }
 
 export enum Flute {
@@ -137,7 +133,7 @@ export interface ShelterPokemon {
 }
 
 export function getNewEggFromShelter(): Observable<string> {
-    const reload_shelter_times = 5;
+    const reload_shelter_times = 30;
     return loadShelter(Flute.black).pipe(
         take(30),
         toArray(),
@@ -145,10 +141,11 @@ export function getNewEggFromShelter(): Observable<string> {
             if (shelter.find(egg => egg.name === "Egg")) {
                 return shelter;
             } else {
+                log(`No new Egg found in Shelter! Attempting again...`);
                 throw new Error("No new egg found");
             }
         }),
-        retryWhen(errors => errors.pipe(delay(30000), take(reload_shelter_times))),
+        //retryWhen(errors => errors.pipe(delay(3000), take(reload_shelter_times))),
         tap(egg => log(`New Egg found in Shelter! Attempting to adopt...`)),
         switchMap(monArr => from(monArr)),
         filter(egg => egg.name === "Egg"),
