@@ -1,8 +1,8 @@
 import parse from 'node-html-parser';
-import {from, Observable} from 'rxjs';
-import {concatMap, distinct, filter, map, mergeMap, mergeWith, pairwise, scan, switchMap} from 'rxjs/operators';
+import { from, Observable, of } from 'rxjs';
+import { concatMap, distinct, filter, map, mergeMap, mergeWith, pairwise, scan, switchMap } from 'rxjs/operators';
 
-import {RequestMethod, sendServerRequest, sendServerRequestAndGetHtml} from '../utils/requests';
+import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '../utils/requests';
 
 
 /**
@@ -120,6 +120,16 @@ export function getPokedexEntries(): Observable<PokedexEntry> {
     );
 }
 
+export function getPokedex(): Observable<PokedexEntry[]> {
+    const requestURL = 'https://pokefarm.com/dex';
+    return sendServerRequestAndGetHtml(requestURL, RequestMethod.Get).pipe(
+        switchMap(html => {
+            let regions: Array<any> = Object.values(JSON.parse(html.querySelector("#dexdata").rawText).regions);
+            return of((([] as Array<any>).concat(...regions)).map(plainArray => PokedexEntry.fromArray(plainArray)));
+        }),
+    );
+}
+
 export class Field {
     id: number;
     name: string;
@@ -135,7 +145,7 @@ export class Field {
 
 }
 
-export function getFieldsFromUser(user: String): Observable<Field> {
+export function getFieldsFromUser(user: string): Observable<Field> {
     const requestURL = 'https://pokefarm.com/fields/fieldlist';
     return sendServerRequest<string>(requestURL, RequestMethod.Post, `{"uid": "${user}"}`).pipe(
         switchMap(body => JSON.parse(body).fields),
@@ -143,7 +153,7 @@ export function getFieldsFromUser(user: String): Observable<Field> {
     );
 }
 
-export function getPokemonFromField(user: String, fieldId: number): Observable<string> {
+export function getPokemonFromField(user: string, fieldId: number): Observable<string> {
     const requestURL = 'https://pokefarm.com/fields/field';
     return sendServerRequest<string>(requestURL, RequestMethod.Post, `{"id": ${fieldId}, "uid": "${user}", "mode": "public"}`).pipe(
         map(body => parse(JSON.parse(body).html)),

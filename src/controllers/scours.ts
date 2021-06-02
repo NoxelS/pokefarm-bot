@@ -12,7 +12,7 @@ export function handleScourMissions(): Observable<{ ok: boolean; error: string }
         switchMap(pokeObject => {
             const [pokemonId, happy] = [pokeObject.pokemonid, pokeObject.happy];
 
-            if (happy > 30) {
+            if (happy >= 31) {
                 // Send on same mission again
                 return sendServerRequest<{ ok: boolean; error: string }>(
                     'https://pokefarm.com/scour/retrieve',

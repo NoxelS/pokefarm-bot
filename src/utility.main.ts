@@ -4,6 +4,7 @@ import { filter, retry, switchMap, tap } from 'rxjs/operators';
 import { collectTrainingBags } from './controllers/dojo';
 import { evolveAllPokemons, hatchPartyEggs } from './controllers/eggs';
 import { ddosPokerusUser } from './controllers/events';
+import { finalStageRelease } from './controllers/fields';
 import { interactWithAllClickbackMonster } from './controllers/interact';
 import { handleScourMissions } from './controllers/scours';
 import { buyAlbinoRadarIfPossibleAndSellIt, sellTrainingBags } from './controllers/shop';
@@ -84,3 +85,5 @@ const scour = interval(slow)
         )
     )
     .subscribe();
+
+    finalStageRelease();
