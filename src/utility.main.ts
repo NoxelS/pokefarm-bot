@@ -70,7 +70,7 @@ const pokerus = interval(fast)
     .pipe(switchMap(() => ddosPokerusUser()))
     .subscribe();
 
-const scour = interval(veryslow)
+const scour = interval(slow)
     .pipe(
         switchMap(() =>
             handleScourMissions().pipe(
