@@ -1,10 +1,9 @@
-import { EMPTY, from, Observable } from 'rxjs';
+import { from, Observable } from 'rxjs';
 import {
     catchError,
     concatMap,
     filter,
     first,
-    isEmpty,
     map,
     mergeMap,
     retry,
@@ -99,30 +98,10 @@ function getNewEggFromLab() {
 }
 
 export function adoptNewEgg() {
-    const shelterEgg = getNewEggFromShelter().pipe(
-        switchMap(adoptEggFromShelter),
-        isEmpty()
+    return getNewEggFromShelter().pipe(
+        switchMap(adoptEggFromShelter)
     );
-
-    const labEgg = getNewEggFromLab().pipe(
-        switchMap(adoptEggFromLab)
-    );
-
-    return shelterEgg.pipe(
-        map(egg => {
-            if (egg) {
-                console.log("labEgg")
-                return labEgg.pipe(tap(log)).subscribe()
-            } else {
-                console.log("shelterEgg")
-                return shelterEgg.pipe(tap(log)).subscribe()
-            }
-        })
-    )
 }
-
-//switchMap(adoptEggFromShelter),
-// switchMap(adoptEggFromLab)
 
 export enum Flute {
     'first' = 'first',
@@ -138,7 +117,7 @@ export interface ShelterPokemon {
 }
 
 export function getNewEggFromShelter(): Observable<string> {
-    const reload_shelter_times = 10;
+    const reload_shelter_times = 20;
     return loadShelter(Flute.black).pipe(
         take(30),
         toArray(),
@@ -153,15 +132,26 @@ export function getNewEggFromShelter(): Observable<string> {
         switchMap(monArr => from(monArr)),
         filter(egg => egg.name === "Egg"),
         first(),
+        tap(egg => log(`Adopted new Egg form Shelter!`)),
         map(egg => {
             return `{id: "${egg.id}"}`
         }),
     ).pipe(
         catchError(err => {
             log(`"No new egg found after reloading Shelter ${reload_shelter_times} times."`);
-            return EMPTY;
+            return getRandomEggFromShelter();
         }),
     );
+}
+
+export function getRandomEggFromShelter(): Observable<string> {
+    return loadShelter(Flute.black).pipe(
+        first(),
+        tap(egg => log(`Adopted random Egg form Shelter: ${egg.name}`)),
+        map(egg => {
+            return `{id: "${egg.id}"}`
+        }),
+    )
 }
 
 export function loadShelter(flute?: Flute): Observable<ShelterPokemon> {
