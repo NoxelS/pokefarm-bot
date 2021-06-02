@@ -6,7 +6,7 @@ import { evolveAllPokemons, hatchPartyEggs } from './controllers/eggs';
 import { ddosPokerusUser } from './controllers/events';
 import { interactWithAllClickbackMonster } from './controllers/interact';
 import { handleScourMissions } from './controllers/scours';
-import { buyAlbinoRadarIfPossibleAndSellIt } from './controllers/shop';
+import { buyAlbinoRadarIfPossibleAndSellIt, sellTrainingBags } from './controllers/shop';
 import { getUserStats } from './controllers/stats';
 import { skipInteractionWarning } from './shared/interaction-warning';
 import { log, logStats } from './shared/logger';
@@ -57,6 +57,10 @@ const slowHandler = interval(fast)
 const shopActions = interval(slow)
     .pipe(switchMap(() => buyAlbinoRadarIfPossibleAndSellIt()))
     .subscribe(_ => log(`Bought and sold an albino radar!`));
+
+const trainingBagAction = interval(veryslow)
+    .pipe(switchMap(() => sellTrainingBags()))
+    .subscribe(_ => log(`Sold bags!`));
 
 /** Monster evos */
 const evos = interval(veryslow)
