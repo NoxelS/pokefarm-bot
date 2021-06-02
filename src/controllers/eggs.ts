@@ -134,7 +134,7 @@ export function getNewEggFromShelter(): Observable<string> {
         first(),
         tap(egg => log(`Adopted new Egg form Shelter!`)),
         map(egg => {
-            return `{id: "${egg.id}"}`
+            return `{"id": "${egg.id}"}`
         }),
     ).pipe(
         catchError(err => {
