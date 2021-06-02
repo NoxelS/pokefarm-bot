@@ -145,6 +145,7 @@ export function getNewEggFromShelter(): Observable<string> {
             if (shelter.find(egg => egg.name === "Egg")) {
                 return shelter;
             } else {
+                log(`New Egg found in Shelter! Attempting again...`);
                 throw new Error("No new egg found");
             }
         }),
