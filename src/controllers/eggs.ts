@@ -101,26 +101,20 @@ function getNewEggFromLab() {
 export function adoptNewEgg() {
     return getAdoptionsLeft().pipe(
         switchMap(adoptionsLeft =>
-            iif(() => (adoptionsLeft > 100),
-                getNewEggFromShelter().pipe(switchMap(adoptEggFromShelter)),
+            iif(() => (adoptionsLeft > 0),
+                getNewEggFromShelter().pipe(switchMap(adoptEggFromShelter),
+                    map(res => {
+                        const result = JSON.parse(res as any);
+                        console.log(result);
+                        if (!result.ok) {
+                            log(`Adopting Egg from Shelter failed. Getting egg from Lab...`)
+                            return getNewEggFromLab().pipe(switchMap(adoptEggFromLab)).subscribe()
+                        }
+                    }),),
                 getNewEggFromLab().pipe(switchMap(adoptEggFromLab))
             )
         )
     )
-    //TODO: Use this fallback if the shelter adoptions do not work at all due to
-    // "Egg/Pok&eacute;mon not found. It may have been snatched by someone else. Please note that if you have two browser tabs open on the Shelter page, then it won't work!"
-
-    // return getNewEggFromShelter().pipe(
-    //     switchMap(adoptEggFromShelter),
-    //     map(res => {
-    //         const result = JSON.parse(res as any);
-    //         console.log(result);
-    //         if (!result.ok) {
-    //             log(`Adopting Egg from Shelter failed. Getting egg from Lab...`)
-    //             return getNewEggFromLab().pipe(switchMap(adoptEggFromLab)).subscribe()
-    //         }
-    //     }),
-    // );
 }
 
 export enum Flute {
@@ -145,7 +139,7 @@ export function getNewEggFromShelter(): Observable<string> {
             if (shelter.find(egg => egg.name === "Egg")) {
                 return shelter;
             } else {
-                log(`New Egg found in Shelter! Attempting again...`);
+                log(`No new Egg found in Shelter! Attempting again...`);
                 throw new Error("No new egg found");
             }
         }),
