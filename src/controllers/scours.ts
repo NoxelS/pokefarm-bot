@@ -37,7 +37,7 @@ export function handleScourMissions(): Observable<{ ok: boolean; error: string }
                         sendServerRequest<{ ok: boolean; error: string }>(
                             'https://pokefarm.com/scour/retrieve',
                             RequestMethod.Post,
-                            `{"pid":"${pokemon.monsterid}"}`
+                            `{"pid":"${pokemonId}"}`
                         ).pipe(switchMap(_ => startScourMission(pokemon.monsterid)))
                     )
                 );
