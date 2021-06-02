@@ -1,5 +1,18 @@
-import { from, Observable } from 'rxjs';
-import { concatMap, filter, first, map, mergeMap, retryWhen, switchMap, tap } from 'rxjs/operators';
+import { EMPTY, from, Observable } from 'rxjs';
+import {
+    catchError,
+    concatMap,
+    filter,
+    first,
+    isEmpty,
+    map,
+    mergeMap,
+    retry,
+    switchMap,
+    take,
+    tap,
+    toArray
+} from 'rxjs/operators';
 
 import { log } from '../shared/logger';
 import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '../utils/requests';
@@ -51,11 +64,11 @@ export function evolveAllPokemons() {
     );
 }
 
-function adoptEggFromLab(newEggBody: any) {
+function adoptEggFromLab(newEggBody: string) {
     return sendServerRequest('https://pokefarm.com/lab/adopt', RequestMethod.Post, newEggBody);
 }
 
-function adoptEggFromShelter(newEggBody: any) {
+function adoptEggFromShelter(newEggBody: string) {
     return sendServerRequest('https://pokefarm.com/shelter/adopt', RequestMethod.Post, newEggBody);
 }
 
@@ -85,13 +98,31 @@ function getNewEggFromLab() {
     );
 }
 
-function adoptNewEgg() {
-    //TODO check shelter first
-    //return getNewEggFromShelter().pipe(switchMap(adoptEggFromShelter));
-    //switchIfEmpty()
-    return getNewEggFromLab().pipe(switchMap(adoptEggFromLab));
+export function adoptNewEgg() {
+    const shelterEgg = getNewEggFromShelter().pipe(
+        switchMap(adoptEggFromShelter),
+        isEmpty()
+    );
+
+    const labEgg = getNewEggFromLab().pipe(
+        switchMap(adoptEggFromLab)
+    );
+
+    return shelterEgg.pipe(
+        map(egg => {
+            if (egg) {
+                console.log("labEgg")
+                return labEgg.pipe(tap(log)).subscribe()
+            } else {
+                console.log("shelterEgg")
+                return shelterEgg.pipe(tap(log)).subscribe()
+            }
+        })
+    )
 }
 
+//switchMap(adoptEggFromShelter),
+// switchMap(adoptEggFromLab)
 
 export enum Flute {
     'first' = 'first',
@@ -106,22 +137,31 @@ export interface ShelterPokemon {
     name: string;
 }
 
-//TODO doesnt work; should throw an error when there are no "Egg"s and reload the Shelter
-export function getNewEggFromShelter() {
+export function getNewEggFromShelter(): Observable<string> {
+    const reload_shelter_times = 10;
     return loadShelter(Flute.black).pipe(
+        take(30),
+        toArray(),
+        map(shelter => {
+            if (shelter.find(egg => egg.name === "Egg")) {
+                return shelter;
+            } else {
+                throw new Error("No new egg found");
+            }
+        }),
+        retry(reload_shelter_times),
+        switchMap(monArr => from(monArr)),
         filter(egg => egg.name === "Egg"),
-        tap(console.log),
-        first(egg => egg.name === "Eggg"),
-        retryWhen(errors =>
-            errors.pipe(
-                tap(val => console.log(`Pokemon with name "Eggg" was not found!`)),
-            )
-        )
+        first(),
+        map(egg => {
+            return `{id: "${egg.id}"}`
+        }),
+    ).pipe(
+        catchError(err => {
+            log(`"No new egg found after reloading Shelter ${reload_shelter_times} times."`);
+            return EMPTY;
+        }),
     );
-
-    //     map(egg => {
-    //         return `{id: "${egg.id}"}`
-    //     })
 }
 
 export function loadShelter(flute?: Flute): Observable<ShelterPokemon> {
