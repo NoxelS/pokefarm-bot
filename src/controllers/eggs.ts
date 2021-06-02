@@ -1,4 +1,4 @@
-import { from, iif, Observable } from 'rxjs';
+import { EMPTY, from, iif, Observable } from 'rxjs';
 import {
     catchError,
     concatMap,
@@ -103,12 +103,14 @@ export function adoptNewEgg() {
         switchMap(adoptionsLeft =>
             iif(() => (adoptionsLeft > 0),
                 getNewEggFromShelter().pipe(switchMap(adoptEggFromShelter),
-                    map(res => {
+                    switchMap(res => {
                         const result = JSON.parse(res as any);
                         console.log(result);
                         if (!result.ok) {
                             log(`Adopting Egg from Shelter failed. Getting egg from Lab...`)
-                            return getNewEggFromLab().pipe(switchMap(adoptEggFromLab)).subscribe()
+                            return getNewEggFromLab().pipe(switchMap(adoptEggFromLab))
+                        } else {
+                            return EMPTY
                         }
                     }),),
                 getNewEggFromLab().pipe(switchMap(adoptEggFromLab))
@@ -131,7 +133,7 @@ export interface ShelterPokemon {
 }
 
 export function getNewEggFromShelter(): Observable<string> {
-    const reload_shelter_times = 5;
+    const reload_shelter_times = 30;
     return loadShelter(Flute.black).pipe(
         take(30),
         toArray(),
@@ -143,7 +145,7 @@ export function getNewEggFromShelter(): Observable<string> {
                 throw new Error("No new egg found");
             }
         }),
-        retryWhen(errors => errors.pipe(delay(3000), take(reload_shelter_times))),
+        //retryWhen(errors => errors.pipe(delay(3000), take(reload_shelter_times))),
         tap(egg => log(`New Egg found in Shelter! Attempting to adopt...`)),
         switchMap(monArr => from(monArr)),
         filter(egg => egg.name === "Egg"),
