@@ -101,7 +101,7 @@ function getNewEggFromLab() {
 export function adoptNewEgg() {
     return getAdoptionsLeft().pipe(
         switchMap(adoptionsLeft =>
-            iif(() => (adoptionsLeft > 0),
+            iif(() => (adoptionsLeft > 100),
                 getNewEggFromShelter().pipe(switchMap(adoptEggFromShelter)),
                 getNewEggFromLab().pipe(switchMap(adoptEggFromLab))
             )
