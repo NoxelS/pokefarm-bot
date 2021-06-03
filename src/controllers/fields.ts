@@ -6,6 +6,7 @@ import { log } from '../shared/logger';
 import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '../utils/requests';
 import { getPokedex } from './dexchecker';
 import { PokemonWithField, User } from './party.interacter';
+import { LEGENDARIES } from "../shared/items.const";
 
 
 export interface Field {
@@ -71,61 +72,82 @@ export function finalStageRelease() {
             switchMap(pokedex => {
                 return getAllFieldPokemonsFromUser({ url: process.env.pfqusername as string, name: process.env.pfqusername as string }, ['Temp']).pipe(
                     switchMap(pokemons => from(pokemons)),
+                    // Pokemon in this Observable will be released
+                    // Pokemon are kept in this Observable for releasing if they are not rare and are not needed for the Pokedex
 
-                    // Filters our every rare pokemon (a rare pokemon contains one of notToRelease tags on summary)
+                    // Only keeps Pokemon to release that are not legendary
+                    filter(pokemon => !LEGENDARIES.includes(pokemon.name)), //TODO is name == species?
+
+                    // Only keeps Pokemon to release that are not rare (a rare pokemon contains one of notToRelease tags on summary)
                     switchMap(pokemon => {
                         return sendServerRequestAndGetHtml('https://pokefarm.com/summary/' + pokemon.monsterid, RequestMethod.Get).pipe(
                             filter(htmlBody => {
                                 // Set pokemon name
-                                return (
-                                    htmlBody
-                                        .querySelectorAll('.name')
-                                        .map(element => element.childNodes.map(child => (child as any)._rawAttrs))[0]
-                                        .map(attr => attr?.title)
-                                        .filter(title => !!title)
-                                        .map(title => title.replace(/[^A-Z]/g, ''))
-                                        .filter(title => notToRelease.includes(title)).length === 0
-                                );
+                                const pokemonTags: string[] = htmlBody
+                                    .querySelectorAll('.name')
+                                    .map(element => element.childNodes.map(child => (child as any)._rawAttrs))[0]
+                                    .map(attr => attr?.title)
+                                    .filter(tag => !!tag)
+                                    .map(tag => tag.replace(/[^A-Z]/g, ''));
+
+                                function pokemonHasNoRareTag(): boolean {
+                                    return pokemonTags.filter(tag => notToRelease.includes(tag)).length === 0;
+                                }
+
+                                return pokemonHasNoRareTag();
                             }),
                             map(_ => pokemon)
                         );
                     }),
 
+                    // Only keeps Pokemon to release that can't evolve or that don't need to evolve for the Pokedex
                     switchMap(pokemon => {
                         skipInteractionWarning().subscribe();
                         return sendServerRequestAndGetHtml('https://pokefarm.com/summary/' + pokemon.monsterid, RequestMethod.Get).pipe(
                             map(htmlBody => {
-                                // Check if pokemon is in final stage
-                                return htmlBody.querySelectorAll('[data-menu="evocheck"]').length === 0;
+                                function pokemonIsInFinalStage(): boolean {
+                                    return htmlBody.querySelectorAll('[data-menu="evocheck"]').length === 0;
+                                }
+
+                                function pokemonIsTooYoungForRelease(): boolean {
+                                    return htmlBody.querySelectorAll('[data-when]').length === 1;
+                                }
+
+                                if (pokemonIsTooYoungForRelease()) {
+                                    // TODO do something else with this pokemon
+                                    console.log(`Pokemon ${pokemon.monsterid} (${pokemon.name}) is too young to be released, regardless of evolution checks.`)
+                                    return false; // this check is overridden by the nextStages check
+                                } else {
+                                    return pokemonIsInFinalStage(); // Release pokemon if in final stage
+                                }
                             }),
 
                             // Find out if the pokemon is missing in pokedex
                             switchMap(isInFinalStage => {
                                 if (isInFinalStage) {
-                                    // Return pokemon immediatly if in final form
-                                    return of(false);
+                                    // Keep pokemon in Observable for releasing, if it is in final form
+                                    console.log(`${pokemon.monsterid} (${pokemon.name}) is in final form and can be released.`);
+                                    return of(true);
                                 } else {
-                                    // Check if pokemon is already in pokedex
-                                    const newId = Number(pokedex.filter(entry => entry.name === pokemon.name)[0].id) + 1;
-                                    const nextForms = pokedex.filter(entry => entry.id == newId.toString());
+                                    // Check if pokemon evolution is already in pokedex
+                                    const evolutionID = Number(pokedex.filter(entry => entry.name === pokemon.name)[0].id) + 1;
+                                    const nextForms = pokedex.filter(entry => entry.id == evolutionID.toString());
 
                                     if (nextForms.length === 0) {
-                                        // Dont know what went wron \_(0.0)_/ (id maybe not a number)
-                                        return of(true);
+                                        // Dont know what went wrong \_(0.0)_/ (id maybe not a number)
+                                        return of(false); // pokemon can not evolve according to Pokedex; keep in field
                                     } else {
-                                        // Pokemons next form is either already in pokedex or not
-
                                         if (nextForms[0].pokedex) {
                                             console.log(
                                                 `Pokemon ${pokemon.monsterid} (${pokemon.name}) is not in final form but next form ${nextForms[0].name} is already in pokedex.`
                                             );
                                         }
 
-                                        return of(!nextForms[0].pokedex);
+                                        // Keep pokemon in Observable for releasing, if its evolutions are already in pokedex
+                                        return of(nextForms[0].pokedex);
                                     }
                                 }
                             }),
-                            filter(isWorthKeeping => !isWorthKeeping),
                             map(_ => pokemon)
                         );
                     }),
@@ -148,6 +170,8 @@ export function finalStageRelease() {
             if (res.ok) {
                 log(`Released a pokemon (${released})`);
                 released++;
+            } else {
+                log(res.error);
             }
         });
 }
