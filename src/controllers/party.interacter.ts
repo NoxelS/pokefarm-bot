@@ -21,6 +21,8 @@ export interface Pokemon {
 
 export interface PokemonWithField extends Pokemon {
     fieldid: string;
+    isFinalForm: boolean;
+    isTooYoungToBeReleased: boolean;
 }
 
 export function getListOfOnlineUsers() {

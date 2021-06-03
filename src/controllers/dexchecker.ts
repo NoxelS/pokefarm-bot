@@ -9,11 +9,11 @@ import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '.
  * Maps the five Pokedexes (Pokedices?) to the array index they have in the PokeFarm code
  */
 export enum Pokedex {
-    'egg' = 5,
-    'pkmn' = 7,
-    'shiny' = 8,
-    'albi' = 9,
-    'melan' = 10
+    'eggdex' = 5,
+    'pokedex' = 7,
+    'shinydex' = 8,
+    'albidex' = 9,
+    'melandex' = 10
 }
 
 /**
@@ -49,12 +49,12 @@ export class PokedexEntry {
         this.melandex = melandex;
     }
 
-    getDexValue(dex: Pokedex): boolean {
-        if (dex == Pokedex.egg) return this.eggdex;
-        if (dex == Pokedex.pkmn) return this.pokedex;
-        if (dex == Pokedex.shiny) return this.shinydex;
-        if (dex == Pokedex.albi) return this.albidex;
-        if (dex == Pokedex.melan) return this.melandex;
+    isInDex(dex: Pokedex): boolean {
+        if (dex == Pokedex.eggdex) return this.eggdex;
+        if (dex == Pokedex.pokedex) return this.pokedex;
+        if (dex == Pokedex.shinydex) return this.shinydex;
+        if (dex == Pokedex.albidex) return this.albidex;
+        if (dex == Pokedex.melandex) return this.melandex;
         return false;
     }
 
@@ -76,7 +76,7 @@ export class PokedexEntry {
 }
 
 function notInDex(dex: Pokedex): (mon: PokedexEntry) => boolean {
-    return (mon: PokedexEntry) => !mon.getDexValue(dex);
+    return (mon: PokedexEntry) => !mon.isInDex(dex);
 }
 
 export function getMissingPokedexEntries(dex: Pokedex): Observable<PokedexEntry> {
@@ -174,7 +174,7 @@ export function getDistinctSpecies(): Observable<string> {
 export function getPokemonWorthEvolvingFromUser() {
     const pokemonFromUser = getDistinctSpecies()
 
-    return getPreStageOfMissingPokedexEntries(Pokedex.pkmn).pipe(
+    return getPreStageOfMissingPokedexEntries(Pokedex.pokedex).pipe(
         map(entry => entry.name),
         mergeWith(pokemonFromUser),
         scan(([dupes, uniques], next) =>
