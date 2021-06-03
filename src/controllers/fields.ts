@@ -197,7 +197,7 @@ export function finalStageRelease() {
                                     return nextForms[0].isInDex(Pokedex.pokedex);
                                 } else {
                                     if (nextForms[0].isInDex(Pokedex.pokedex) && nextForms[1].isInDex(Pokedex.pokedex)) {
-                                        log(`[RELEASE] ${pokemon.monsterid} (${pokemon.name}) is not in final form but next form(s) ${nextForms[0].name} and ${nextForms[0].name} are already in pokedex.`);
+                                        log(`[RELEASE] ${pokemon.monsterid} (${pokemon.name}) is not in final form but next form(s) ${nextForms[0].name} and ${nextForms[1].name} are already in pokedex.`);
                                     } else {
                                         log(`[EVOLUTION] Pokemon ${pokemon.monsterid} (${pokemon.name}) should be kept to evolve into one if its next forms ${nextForms[0].name} or ${nextForms[1].name}. Moving it...`);
                                         movePokemonToNamedField(pokemon.monsterid, "EVO").subscribe()
