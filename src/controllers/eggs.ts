@@ -1,17 +1,5 @@
 import { from, iif, Observable, of } from 'rxjs';
-import {
-    catchError,
-    concatMap,
-    filter,
-    first,
-    map,
-    mergeMap,
-    retry,
-    switchMap,
-    take,
-    tap,
-    toArray
-} from 'rxjs/operators';
+import { catchError, concatMap, filter, first, map, mergeMap, retry, switchMap, take, tap, toArray } from 'rxjs/operators';
 
 import { log } from '../shared/logger';
 import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '../utils/requests';
@@ -239,6 +227,7 @@ export function hatchPartyEggs() {
                         return getFields(process.env.pfqusername as any).pipe(
                             map(fields => {
                                 if (!!fields) {
+                                    //TODO can probably be refactored with new "positionID" attribute
                                     let positionToMoveTo = fields.findIndex(field => field.name == 'Temp' && Number(field.count) < 40);
                                     if (positionToMoveTo == -1) positionToMoveTo = fields.findIndex(field => Number(field.count) < 40);
                                     return positionToMoveTo;

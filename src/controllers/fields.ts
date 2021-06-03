@@ -10,6 +10,7 @@ import { LEGENDARIES } from "../shared/items.const";
 
 
 export interface Field {
+    positionid: string;
     id: string;
     name: string;
     type: string;
@@ -18,10 +19,22 @@ export interface Field {
     count: string;
 }
 
+export function getFieldsWithName(username: string, names: string[]): Observable<Field[]> {
+    return getFields(username).pipe(
+        map(fieldsArray => fieldsArray.filter(field => names.includes(field.name)))
+    )
+}
+
 export function getFields(username: string): Observable<Field[]> {
     return sendServerRequest('https://pokefarm.com/fields/fieldlist', RequestMethod.Post, `{\"uid\":\"${username}\"}`).pipe(
         map(res => {
             return JSON.parse(res as any).fields;
+        }),
+        map(fields => {
+            for (let i = 0; i < fields.length; i++) {
+                fields[i].positionid = i;
+            }
+            return fields;
         })
     );
 }
@@ -48,6 +61,7 @@ function getFieldPositionByName(userurl: string, fieldName: string): Observable<
     return getFields(userurl).pipe(
         map(fields => {
             if (!!fields) {
+                //TODO can probably be refactored with new "positionID" attribute
                 const fieldPosition = fields.findIndex(field => field.name === fieldName && Number(field.count) < 40);
                 if (fieldPosition == -1) {
                     log(`No field with name ${fieldName} and enough space was found.`);
@@ -62,21 +76,15 @@ function getFieldPositionByName(userurl: string, fieldName: string): Observable<
 }
 
 export function getAllFieldPokemonsFromUser(user: User, fieldWhiteList?: string[]): Observable<PokemonWithField[]> {
-    return getFields(user.url).pipe(
+    const fields = fieldWhiteList ? getFieldsWithName(user.url, fieldWhiteList) : getFields(user.url);
+    return fields.pipe(
         switchMap(fields => from(fields)),
-        filter(field => {
-            if (fieldWhiteList) {
-                return fieldWhiteList.filter(fieldWhite => field.name === fieldWhite).length > 0;
-            } else {
-                return true;
-            }
-        }),
         switchMap(field =>
             sendServerRequestAndGetHtml(
                 'https://pokefarm.com/fields/field',
                 RequestMethod.Post,
                 true,
-                `{"id":${field.id},"uid":"${user.url}","mode":"public"}`
+                `{"id":${field.positionid},"uid":"${user.url}","mode":"public"}`
             ).pipe(
                 map(body => {
                     const data = body.querySelectorAll('.fieldmon');
