@@ -17,6 +17,7 @@ export interface Pokemon {
     isEgg: boolean;
     taste: BerryTaste;
     name: string;
+    species: string;
 }
 
 export interface PokemonWithField extends Pokemon {

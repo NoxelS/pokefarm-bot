@@ -1,5 +1,5 @@
-import { from, Observable } from 'rxjs';
-import { filter, map, switchMap } from 'rxjs/operators';
+import { EMPTY, from, Observable } from 'rxjs';
+import { filter, map, switchMap, tap } from 'rxjs/operators';
 
 import { skipInteractionWarning } from '../shared/interaction-warning';
 import { log } from '../shared/logger';
@@ -26,6 +26,41 @@ export function getFields(username: string): Observable<Field[]> {
     );
 }
 
+export function movePokemonToNamedField(pokemonID: string, fieldName: string) {
+    return getFieldPositionByName(process.env.pfqusername as string, fieldName).pipe(
+        switchMap(fieldPos => {
+            if (fieldPos > 0) {
+                return sendServerRequest('https://pokefarm.com/fields/movetofield', RequestMethod.Post, `{"id":"${pokemonID}", "field":${fieldPos}, "getEmptySlot":true}`);
+            } else {
+                return EMPTY;
+            }
+        }),
+        tap(res => {
+            const result = JSON.parse(res as any);
+            if (!result.ok) {
+                log(result.error);
+            }
+        })
+    )
+}
+
+function getFieldPositionByName(userurl: string, fieldName: string): Observable<Number> {
+    return getFields(userurl).pipe(
+        map(fields => {
+            if (!!fields) {
+                const fieldPosition = fields.findIndex(field => field.name === fieldName && Number(field.count) < 40);
+                if (fieldPosition == -1) {
+                    log(`No field with name ${fieldName} and enough space was found.`);
+                }
+                return fieldPosition;
+            } else {
+                log(`No fields received for user [${userurl}]`);
+                return -1;
+            }
+        })
+    )
+}
+
 export function getAllFieldPokemonsFromUser(user: User, fieldWhiteList?: string[]): Observable<PokemonWithField[]> {
     return getFields(user.url).pipe(
         switchMap(fields => from(fields)),
@@ -46,11 +81,13 @@ export function getAllFieldPokemonsFromUser(user: User, fieldWhiteList?: string[
                 map(body => {
                     const data = body.querySelectorAll('.fieldmon');
                     return data.map(mon => {
+                        const speciesApproximation = body.querySelector(`a[href="/summary/${mon.attributes['data-id']}"]`).parentNode.parentNode.innerText;
                         return <PokemonWithField>{
                             monsterid: mon.attributes['data-id'],
                             isEgg: false,
                             taste: mon.attributes['data-flavour'].split('-')[0],
                             name: body.querySelector(`a[href="/summary/${mon.attributes['data-id']}"]`).innerText,
+                            species: speciesApproximation.substring(speciesApproximation.indexOf(":") + 1, speciesApproximation.lastIndexOf("Type:")).trim(),
                             fieldid: field.id
                         };
                     });
@@ -77,9 +114,10 @@ export function finalStageRelease() {
 
                     // Only keeps Pokemon to release that are not legendary
                     filter(pokemon => {
-                        const isLegendary: boolean = LEGENDARIES.includes(pokemon.name); //TODO is name == species?
+                        const isLegendary: boolean = LEGENDARIES.includes(pokemon.species) || LEGENDARIES.includes(pokemon.name); // check both for extra security
                         if (isLegendary) {
-                            log(`[KEEP] Pokemon ${pokemon.monsterid} (${pokemon.name}) is a legendary Pokemon.`);
+                            log(`[LEGENDARY] Pokemon ${pokemon.monsterid} (${pokemon.name}) is a legendary Pokemon. Moving it...`);
+                            movePokemonToNamedField(pokemon.monsterid, "LEGENDARY").subscribe()
                         }
                         return !isLegendary;
                     }),
@@ -100,7 +138,8 @@ export function finalStageRelease() {
 
 
                                 if (pokemonHasRareTag) {
-                                    log(`[KEEP] Pokemon ${pokemon.monsterid} (${pokemon.name}) has a rare tag.`);
+                                    log(`[RARE] Pokemon ${pokemon.monsterid} (${pokemon.name}) has a rare tag.`);
+                                    movePokemonToNamedField(pokemon.monsterid, "RARE").subscribe()
                                 }
                                 return !pokemonHasRareTag;
                             }),
@@ -124,13 +163,13 @@ export function finalStageRelease() {
                             // 3) not in final form but their evolution is already in pokedex
                             filter(pokemon => {
                                 if (pokemon.isTooYoungToBeReleased) {
-                                    log(`[KEEP] Pokemon ${pokemon.monsterid} (${pokemon.name}) is too young to be released, regardless of evolution checks.`);
+                                    log(`[WAIT] Pokemon ${pokemon.monsterid} (${pokemon.name}) is too young to be released, regardless of evolution checks.`);
+                                    //movePokemonToNamedField(pokemon.monsterid, "TOOYOUNG")
                                     return false;
-                                    // TODO do something else with this pokemon
                                 }
 
                                 if (pokemon.isFinalForm) {
-                                    log(`${pokemon.monsterid} (${pokemon.name}) is in final form and can be released.`);
+                                    log(`[RELEASE] ${pokemon.monsterid} (${pokemon.name}) is in final form and can be released.`);
                                     return true;
                                 }
 
@@ -146,9 +185,10 @@ export function finalStageRelease() {
                                     return false; // pokemon can not evolve according to Pokedex; keep in field
                                 } else {
                                     if (nextForms[0].isInDex(Pokedex.pokedex)) {
-                                        log(`Pokemon ${pokemon.monsterid} (${pokemon.name}) is not in final form but next form ${nextForms[0].name} is already in pokedex.`);
+                                        log(`[RELEASE] ${pokemon.monsterid} (${pokemon.name}) is not in final form but next form ${nextForms[0].name} is already in pokedex.`);
                                     } else {
-                                        log(`[KEEP] Pokemon ${pokemon.monsterid} (${pokemon.name}) is not in final form and should be kept to evolve into form ${nextForms[0].name}.`);
+                                        log(`[EVOLUTION] Pokemon ${pokemon.monsterid} (${pokemon.name}) should be kept to evolve into form ${nextForms[0].name}. Moving it...`);
+                                        movePokemonToNamedField(pokemon.monsterid, "EVO").subscribe()
                                     }
                                     return nextForms[0].isInDex(Pokedex.pokedex);
                                 }
