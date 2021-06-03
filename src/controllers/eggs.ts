@@ -1,5 +1,17 @@
-import { EMPTY, from, iif, Observable } from 'rxjs';
-import { catchError, concatMap, filter, first, map, mergeMap, retry, switchMap, take, tap, toArray } from 'rxjs/operators';
+import { from, iif, Observable, of } from 'rxjs';
+import {
+    catchError,
+    concatMap,
+    filter,
+    first,
+    map,
+    mergeMap,
+    retry,
+    switchMap,
+    take,
+    tap,
+    toArray
+} from 'rxjs/operators';
 
 import { log } from '../shared/logger';
 import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '../utils/requests';
@@ -65,13 +77,15 @@ export function moveHatchedPokemon(eggID: string, fieldID: string) {
 
 function hatchEgg(eggID: string) {
     return sendServerRequest('https://pokefarm.com/summary/hatch', RequestMethod.Post, `{"id":"${eggID}"}`).pipe(
-        map(res => JSON.parse(res as any)),
         switchMap(res => {
-            if (res?.chainbreakquery) {
-                // TODO: if we farm shiny this shouldn't break the chain immedeatly!
+            const result = JSON.parse(res as any)
+            if (result?.chainbreakquery) {
+                // TODO: if we farm shiny this shouldn't break the chain immediately!
                 return sendServerRequest('https://pokefarm.com/summary/hatch', RequestMethod.Post, `{"id":"${eggID}", "eggpassresponse": "1"}`)
+            } else {
+                return of(res);
             }
-            return EMPTY;
+
         })
     );
 }
@@ -107,7 +121,7 @@ export function adoptNewEgg() {
                             log(`Adopting egg from Shelter failed. Reason: [${result.error}] Getting egg from Lab...`);
                             return getNewEggFromLab().pipe(switchMap(adoptEggFromLab));
                         } else {
-                            return EMPTY;
+                            return of(res);
                         }
                     })
                 ),
@@ -155,8 +169,8 @@ export function getNewEggFromShelter(): Observable<string> {
         )
         .pipe(
             catchError(err => {
-                log(`No new egg found after reloading Shelter ${reload_shelter_times} times. Getting random egg from shelter...`);
-                return getRandomEggFromShelter();
+                log(`No new egg found after reloading Shelter ${reload_shelter_times} times. Getting egg from lab...`);
+                return getNewEggFromLab();
             })
         );
 }
@@ -191,7 +205,7 @@ export function getAdoptionsLeft(): Observable<number> {
         map(html => {
             const p = html.querySelectorAll('p');
             const text = p[p.length - 1].innerText;
-            const adoptionsLeft = parseInt(text.substring(20, text.lastIndexOf(' adoptions')));
+            const adoptionsLeft = parseInt(text.substring(20, text.lastIndexOf(' adoption')));
             log(`Adoptions from shelter left: ${adoptionsLeft}`);
             return adoptionsLeft;
         })
@@ -216,6 +230,8 @@ export function hatchPartyEggs() {
             } else {
                 return hatchEgg(eggId).pipe(
                     filter(res => JSON.parse(res as any).ok),
+                    //TODO: If we cant hatch, because it is not an Egg, then check the level of the pokemon and move it if the level is >= 36
+                    // use iif on ok
                     tap(() => {
                         log('Found a finished egg. Adoptiong new egg.');
                     }),
