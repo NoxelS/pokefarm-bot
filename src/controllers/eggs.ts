@@ -1,5 +1,17 @@
 import { EMPTY, from, iif, Observable } from 'rxjs';
-import { catchError, concatMap, filter, first, map, mergeMap, switchMap, take, tap, toArray } from 'rxjs/operators';
+import {
+    catchError,
+    concatMap,
+    filter,
+    first,
+    map,
+    mergeMap,
+    retry,
+    switchMap,
+    take,
+    tap,
+    toArray
+} from 'rxjs/operators';
 
 import { log } from '../shared/logger';
 import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '../utils/requests';
@@ -119,7 +131,7 @@ export interface ShelterPokemon {
 }
 
 export function getNewEggFromShelter(): Observable<string> {
-    const reload_shelter_times = 3;
+    const reload_shelter_times = 30;
     return loadShelter(Flute.black).pipe(
         take(30),
         toArray(),
@@ -131,7 +143,7 @@ export function getNewEggFromShelter(): Observable<string> {
                 throw new Error("No new egg found");
             }
         }),
-        //retryWhen(errors => errors.pipe(delay(1000), take(reload_shelter_times))),
+        retry(reload_shelter_times),
         tap(egg => log(`New egg found in Shelter! Attempting to adopt...`)),
         switchMap(monArr => from(monArr)),
         filter(egg => egg.name === "Egg"),
