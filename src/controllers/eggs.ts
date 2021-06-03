@@ -1,18 +1,5 @@
 import { EMPTY, from, iif, Observable } from 'rxjs';
-import {
-    catchError,
-    concatMap,
-    delay,
-    filter,
-    first,
-    map,
-    mergeMap,
-    retryWhen,
-    switchMap,
-    take,
-    tap,
-    toArray
-} from 'rxjs/operators';
+import { catchError, concatMap, filter, first, map, mergeMap, switchMap, take, tap, toArray } from 'rxjs/operators';
 
 import { log } from '../shared/logger';
 import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '../utils/requests';
@@ -225,8 +212,9 @@ export function hatchPartyEggs() {
                         return getFields(process.env.pfqusername as any).pipe(
                             map(fields => {
                                 if (!!fields) {
-                                    const nextTempFields = fields.filter(field => field.name == 'Temp' && Number(field.count) < 40);
-                                    return nextTempFields.length > 0 ? nextTempFields[0].id : fields.filter(field => Number(field.count) < 40)[0].id;
+                                    let positionToMoveTo = fields.findIndex(field => field.name == 'Temp' && Number(field.count) < 40);
+                                    if (positionToMoveTo == -1) positionToMoveTo = fields.findIndex(field => Number(field.count) < 40);
+                                    return positionToMoveTo;
                                 } else {
                                     log('No field with name "Temp" was found.');
                                     return 'null';
