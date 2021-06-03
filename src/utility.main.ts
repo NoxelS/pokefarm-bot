@@ -2,7 +2,7 @@ import { interval } from 'rxjs';
 import { filter, retry, switchMap, tap } from 'rxjs/operators';
 
 import { collectTrainingBags } from './controllers/dojo';
-import { evolveAllPokemons, hatchPartyEggs } from './controllers/eggs';
+import { evolveAllPokemons } from './controllers/eggs';
 import { ddosPokerusUser } from './controllers/events';
 import { interactWithAllClickbackMonster } from './controllers/interact';
 import { handleScourMissions } from './controllers/scours';
@@ -48,7 +48,7 @@ const fastHandler = interval(veryfast)
 /** Slow interval  */
 const slowHandler = interval(fast)
     .pipe(
-        switchMap(() => hatchPartyEggs()),
+        //switchMap(() => hatchPartyEggs()),
         switchMap(() => interactWithAllClickbackMonster().pipe(tap(log)))
     )
     .subscribe();
