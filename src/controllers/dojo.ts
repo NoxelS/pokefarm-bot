@@ -23,7 +23,7 @@ export function getTrainingsMonsterIDs(): Observable<string> {
     );
 }
 
-// TODO Pokemon could always be the same, username should be opposite of env.pfqusername
+// TODO Pokemon could always be the same or taken from field with name "Challenge", username should be opposite of env.pfqusername
 // TODO maybe requires to "dismiss" battle log
 export function challengeTrainer(pokemon: string, username: string) {
     const challengeURL = 'https://pokefarm.com/dojo/sparring/challenge';
@@ -42,15 +42,29 @@ export function acceptChallenge() {
     return sendServerRequest(challengeURL, RequestMethod.Post, ``).pipe(
         map(res => JSON.parse(res as any)),
         tap(res => {
-            log(`Challenged `);
+            log(`Challenge accepted [${res.ok ? 'successful' : 'failed with error: ' + res.errror}]`);
+        })
+    );
+}
+
+// Finishes a challenges started by yourself, not incoming battles
+export function finishChallenge() {
+    const challengeURL = 'https://pokefarm.com/dojo/sparring/finish';
+    return sendServerRequest(challengeURL, RequestMethod.Post, `null`).pipe(
+        map(res => JSON.parse(res as any)),
+        tap(res => {
+            log(`Challenge finished [${res.ok ? 'successful' : 'failed with error: ' + res.errror}]`);
         })
     );
 }
 
 export function train(monsterId: string, bags: string[]) {
-    return sendServerRequest('https://pokefarm.com/dojo/training/train', RequestMethod.Post, JSON.stringify({ id: monsterId, bags }));
+    return sendServerRequest('https://pokefarm.com/dojo/training/train', RequestMethod.Post, JSON.stringify({
+        id: monsterId,
+        bags
+    }));
 }
 
 export function finishTraining(monsterId: string) {
-    return sendServerRequest('https://pokefarm.com/dojo/training/finish', RequestMethod.Post, JSON.stringify({ id: monsterId }));
+    return sendServerRequest('https://pokefarm.com/dojo/training/finish', RequestMethod.Post, JSON.stringify({id: monsterId}));
 }
