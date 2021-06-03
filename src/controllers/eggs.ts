@@ -1,17 +1,5 @@
 import { EMPTY, from, iif, Observable } from 'rxjs';
-import {
-    catchError,
-    concatMap,
-    filter,
-    first,
-    map,
-    mergeMap,
-    retry,
-    switchMap,
-    take,
-    tap,
-    toArray
-} from 'rxjs/operators';
+import { catchError, concatMap, filter, first, map, mergeMap, retry, switchMap, take, tap, toArray } from 'rxjs/operators';
 
 import { log } from '../shared/logger';
 import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '../utils/requests';
@@ -76,7 +64,16 @@ export function moveHatchedPokemon(eggID: string, fieldID: string) {
 }
 
 function hatchEgg(eggID: string) {
-    return sendServerRequest('https://pokefarm.com/summary/hatch', RequestMethod.Post, `{"id":"${eggID}"}`);
+    return sendServerRequest('https://pokefarm.com/summary/hatch', RequestMethod.Post, `{"id":"${eggID}"}`).pipe(
+        map(res => JSON.parse(res as any)),
+        switchMap(res => {
+            if (res?.chainbreakquery) {
+                // TODO: if we farm shiny this shouldn't break the chain immedeatly!
+                return sendServerRequest('https://pokefarm.com/summary/hatch', RequestMethod.Post, `{"id":"${eggID}", "eggpassresponse": "1"}`)
+            }
+            return EMPTY;
+        })
+    );
 }
 
 function getNewEggFromLab() {
@@ -100,21 +97,24 @@ function getNewEggFromLab() {
 export function adoptNewEgg() {
     return getAdoptionsLeft().pipe(
         switchMap(adoptionsLeft =>
-            iif(() => (adoptionsLeft > 0),
-                getNewEggFromShelter().pipe(switchMap(adoptEggFromShelter),
+            iif(
+                () => adoptionsLeft > 0,
+                getNewEggFromShelter().pipe(
+                    switchMap(adoptEggFromShelter),
                     switchMap(res => {
                         const result = JSON.parse(res as any);
                         if (!result.ok) {
-                            log(`Adopting egg from Shelter failed. Reason: [${result.error}] Getting egg from Lab...`)
-                            return getNewEggFromLab().pipe(switchMap(adoptEggFromLab))
+                            log(`Adopting egg from Shelter failed. Reason: [${result.error}] Getting egg from Lab...`);
+                            return getNewEggFromLab().pipe(switchMap(adoptEggFromLab));
                         } else {
-                            return EMPTY
+                            return EMPTY;
                         }
-                    }),),
+                    })
+                ),
                 getNewEggFromLab().pipe(switchMap(adoptEggFromLab))
             )
         )
-    )
+    );
 }
 
 export enum Flute {
@@ -132,31 +132,33 @@ export interface ShelterPokemon {
 
 export function getNewEggFromShelter(): Observable<string> {
     const reload_shelter_times = 30;
-    return loadShelter(Flute.black).pipe(
-        take(30),
-        toArray(),
-        map(shelter => {
-            if (shelter.find(egg => egg.name === "Egg")) {
-                return shelter;
-            } else {
-                log(`No new egg found in Shelter! Attempting again...`);
-                throw new Error("No new egg found");
-            }
-        }),
-        retry(reload_shelter_times),
-        tap(egg => log(`New egg found in Shelter! Attempting to adopt...`)),
-        switchMap(monArr => from(monArr)),
-        filter(egg => egg.name === "Egg"),
-        first(),
-        map(egg => {
-            return `{"id": "${egg.id}"}`
-        }),
-    ).pipe(
-        catchError(err => {
-            log(`No new egg found after reloading Shelter ${reload_shelter_times} times. Getting random egg from shelter...`);
-            return getRandomEggFromShelter();
-        }),
-    );
+    return loadShelter(Flute.black)
+        .pipe(
+            take(30),
+            toArray(),
+            map(shelter => {
+                if (shelter.find(egg => egg.name === 'Egg')) {
+                    return shelter;
+                } else {
+                    log(`No new egg found in Shelter! Attempting again...`);
+                    throw new Error('No new egg found');
+                }
+            }),
+            retry(reload_shelter_times),
+            tap(egg => log(`New egg found in Shelter! Attempting to adopt...`)),
+            switchMap(monArr => from(monArr)),
+            filter(egg => egg.name === 'Egg'),
+            first(),
+            map(egg => {
+                return `{"id": "${egg.id}"}`;
+            })
+        )
+        .pipe(
+            catchError(err => {
+                log(`No new egg found after reloading Shelter ${reload_shelter_times} times. Getting random egg from shelter...`);
+                return getRandomEggFromShelter();
+            })
+        );
 }
 
 export function getRandomEggFromShelter(): Observable<string> {
@@ -164,13 +166,13 @@ export function getRandomEggFromShelter(): Observable<string> {
         first(),
         tap(egg => log(`Adopting random egg from Shelter: ${egg.name}`)),
         map(egg => {
-            return `{"id": "${egg.id}"}`
-        }),
-    )
+            return `{"id": "${egg.id}"}`;
+        })
+    );
 }
 
 export function loadShelter(flute?: Flute): Observable<ShelterPokemon> {
-    const loadURL = "https://pokefarm.com/shelter/load";
+    const loadURL = 'https://pokefarm.com/shelter/load';
     const postBody = flute == undefined ? '' : `{"flute": "${flute}"}`;
     return sendServerRequest(loadURL, RequestMethod.Post, postBody).pipe(
         map(res => JSON.parse(res as any)),
@@ -183,15 +185,13 @@ export function loadShelter(flute?: Flute): Observable<ShelterPokemon> {
 }
 
 export function getAdoptionsLeft(): Observable<number> {
-    const loadURL = "https://pokefarm.com/shelter/load";
+    const loadURL = 'https://pokefarm.com/shelter/load';
     const postBody = `{}`;
     return sendServerRequestAndGetHtml(loadURL, RequestMethod.Post, true, postBody).pipe(
         map(html => {
             const p = html.querySelectorAll('p');
             const text = p[p.length - 1].innerText;
-            const adoptionsLeft = parseInt(text.substring(20,
-                text.lastIndexOf(" adoptions"))
-            );
+            const adoptionsLeft = parseInt(text.substring(20, text.lastIndexOf(' adoptions')));
             log(`Adoptions from shelter left: ${adoptionsLeft}`);
             return adoptionsLeft;
         })
