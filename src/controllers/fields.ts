@@ -175,15 +175,19 @@ export function finalStageRelease() {
 
 
                                 // TODO should check all forms
-                                // TODO should check evolution of evolution --> if neither id+1 nor id+2 can hatch from eggs
                                 // Check if pokemon evolution is already in pokedex
-                                const nextFormID = Number(pokedex.filter(entry => entry.name === pokemon.name)[0].id) + 1;
-                                const nextForms = pokedex.filter(entry => entry.id == nextFormID.toString());
+                                const currentPokemonID = Number(pokedex.filter(entry => entry.name === pokemon.name)[0].id);
+                                const nextForms = pokedex.filter(entry => {
+                                    // When currentPokemonID is not at finalStage, then currentPokemonID+1 is most definitely an evolution.
+                                    // When currentPokemonID+1 is an evolution, currentPokemonID+2 should be an evolution, too, if it can not hatch form an egg.
+                                    return (entry.id == (currentPokemonID + 1).toString() || entry.id == (currentPokemonID + 2).toString())
+                                        && !entry.eggs;
+                                });
 
                                 if (nextForms.length === 0) {
                                     // Dont know what went wrong \_(0.0)_/ (id maybe not a number)
-                                    return false; // pokemon can not evolve according to Pokedex; keep in field
-                                } else {
+                                    return false; // pokemon can not evolve according to Pokedex, but is not at final stage according to HTMLdom; keep in field
+                                } else if (nextForms.length === 1) {
                                     if (nextForms[0].isInDex(Pokedex.pokedex)) {
                                         log(`[RELEASE] ${pokemon.monsterid} (${pokemon.name}) is not in final form but next form ${nextForms[0].name} is already in pokedex.`);
                                     } else {
@@ -191,6 +195,14 @@ export function finalStageRelease() {
                                         movePokemonToNamedField(pokemon.monsterid, "EVO").subscribe()
                                     }
                                     return nextForms[0].isInDex(Pokedex.pokedex);
+                                } else {
+                                    if (nextForms[0].isInDex(Pokedex.pokedex) && nextForms[1].isInDex(Pokedex.pokedex)) {
+                                        log(`[RELEASE] ${pokemon.monsterid} (${pokemon.name}) is not in final form but next form(s) ${nextForms[0].name} and ${nextForms[0].name} are already in pokedex.`);
+                                    } else {
+                                        log(`[EVOLUTION] Pokemon ${pokemon.monsterid} (${pokemon.name}) should be kept to evolve into one if its next forms ${nextForms[0].name} or ${nextForms[1].name}. Moving it...`);
+                                        movePokemonToNamedField(pokemon.monsterid, "EVO").subscribe()
+                                    }
+                                    return nextForms[0].isInDex(Pokedex.pokedex) && nextForms[1].isInDex(Pokedex.pokedex);
                                 }
                             })
                         );
