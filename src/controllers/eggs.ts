@@ -59,7 +59,7 @@ function adoptEggFromShelter(newEggBody: string) {
     return sendServerRequest('https://pokefarm.com/shelter/adopt', RequestMethod.Post, newEggBody);
 }
 
-function moveHatchedPokemon(eggID: string, fieldID: string) {
+export function moveHatchedPokemon(eggID: string, fieldID: string) {
     return sendServerRequest('https://pokefarm.com/fields/movetofield', RequestMethod.Post, `{"id":"${eggID}", "field":${fieldID}, "getEmptySlot":true}`);
 }
 
@@ -221,7 +221,7 @@ export function hatchPartyEggs() {
                                 }
                             }),
                             switchMap(fieldId => {
-                                return moveHatchedPokemon(eggId, fieldId).pipe(switchMap(adoptNewEgg));
+                                return moveHatchedPokemon(eggId, fieldId.toString()).pipe(switchMap(adoptNewEgg));
                             })
                         );
                     })
