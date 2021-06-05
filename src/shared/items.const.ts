@@ -1,3 +1,17 @@
+export enum EvoStoneEnum {
+    'Dawn' = 19,
+    'Dusk' = 20,
+    'Fire' = 15,
+    'Ice' = 602,
+    'Leaf' = 17,
+    'Moon' = 18,
+    'Oval' = 23,
+    'Shiny' = 21,
+    'Sun' = 22,
+    'Thunder' = 14,
+    'Water' = 16
+}
+
 export enum BerryTypeEnum {
     'aspear' = 'aspear',
     'cheri' = 'cheri',

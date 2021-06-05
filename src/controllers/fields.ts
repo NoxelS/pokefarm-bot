@@ -1,5 +1,5 @@
 import { EMPTY, from, Observable } from 'rxjs';
-import { filter, map, switchMap, tap } from 'rxjs/operators';
+import { filter, map, retry, switchMap, tap } from 'rxjs/operators';
 
 import { skipInteractionWarning } from '../shared/interaction-warning';
 import { log } from '../shared/logger';
@@ -7,6 +7,7 @@ import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '.
 import { getPokedex, Pokedex } from './dexchecker';
 import { PokemonWithField, User } from './party.interacter';
 import { LEGENDARIES } from "../shared/items.const";
+import { evolvePokemonWithStone } from "./eggs";
 
 
 export interface Field {
@@ -56,6 +57,28 @@ export function movePokemonToNamedField(pokemonID: string, fieldName: string) {
         })
     )
 }
+
+export function movePokemonToEvolutionField(pokemon: PokemonWithField) {
+    return sendServerRequestAndGetHtml("https://pokefarm.com/summary/evocheck", RequestMethod.Post, true, `{"id": "${pokemon.monsterid}"}`).pipe(
+        map(htmlBody => {
+            // console.log(htmlBody.innerText); Actually pretty neat log.
+            const methods: string[] = ['Happiness', 'Trade', 'Level', 'Stone', 'Orb', 'Field', 'Sweet'];
+            let method: string = 'EVO'
+            methods.forEach(potentialMethod => {
+                if (htmlBody.innerText.indexOf(potentialMethod) !== -1) {
+                    method = potentialMethod;
+                }
+            })
+
+            log(`[${method}] Pokemon ${pokemon.monsterid} (${pokemon.name}) can evolve by ${method}.`);
+            if (method === "Stone") {
+                evolvePokemonWithStone(pokemon, htmlBody.innerText).subscribe(); // Problem when evolving: it will evolve all of the same species, because the dex doesnt get updated, which results in using many stones -> buy 100 of every stone before starting
+            }
+            movePokemonToNamedField(pokemon.monsterid, method).subscribe();
+        }),
+    )
+}
+
 
 function getFieldPositionByName(userurl: string, fieldName: string): Observable<Number> {
     return getFields(userurl).pipe(
@@ -115,7 +138,7 @@ export function finalStageRelease() {
     getPokedex()
         .pipe(
             switchMap(pokedex => {
-                return getAllFieldPokemonsFromUser({ url: process.env.pfqusername as string, name: process.env.pfqusername as string }, ['Temp']).pipe(
+                return getAllFieldPokemonsFromUser({ url: process.env.pfqusername as string, name: process.env.pfqusername as string }, ['EVO']).pipe(
                     switchMap(pokemons => from(pokemons)),
                     // Pokemon in this Observable will be released
                     // Pokemon are kept in this Observable for releasing if they are not rare and are not needed for the Pokedex
@@ -151,7 +174,8 @@ export function finalStageRelease() {
                                 }
                                 return !pokemonHasRareTag;
                             }),
-                            map(_ => pokemon)
+                            map(_ => pokemon),
+                            retry(1)
                         );
                     }),
 
@@ -161,7 +185,7 @@ export function finalStageRelease() {
                         return sendServerRequestAndGetHtml('https://pokefarm.com/summary/' + pokemon.monsterid, RequestMethod.Get).pipe(
                             map(htmlBody => {
                                 pokemon.isTooYoungToBeReleased = htmlBody.querySelectorAll('[data-when]').length === 1;
-                                pokemon.isFinalForm = htmlBody.querySelectorAll('[data-menu="evocheck"]').length === 0;
+                                pokemon.isFinalForm = htmlBody.querySelectorAll('[data-menu="evocheck"]').length === 0; //TODO: Check for " (Final)" because of "Stage: Stage 1 Pokémon (Final)"
                                 return pokemon;
                             }),
 
@@ -200,15 +224,15 @@ export function finalStageRelease() {
                                         log(`[RELEASE] ${pokemon.monsterid} (${pokemon.name}) is not in final form but next form ${nextForms[0].name} is already in pokedex.`);
                                     } else {
                                         log(`[EVOLUTION] Pokemon ${pokemon.monsterid} (${pokemon.name}) should be kept to evolve into form ${nextForms[0].name}. Moving it...`);
-                                        movePokemonToNamedField(pokemon.monsterid, "EVO").subscribe()
+                                        movePokemonToEvolutionField(pokemon).subscribe()
                                     }
                                     return nextForms[0].isInDex(Pokedex.pokedex);
                                 } else {
                                     if (nextForms[0].isInDex(Pokedex.pokedex) && nextForms[1].isInDex(Pokedex.pokedex)) {
-                                        log(`[RELEASE] ${pokemon.monsterid} (${pokemon.name}) is not in final form but next form(s) ${nextForms[0].name} and ${nextForms[1].name} are already in pokedex.`);
+                                        log(`[RELEASE] ${pokemon.monsterid} (${pokemon.name}) is not in final form but next forms ${nextForms[0].name} and ${nextForms[1].name} are already in pokedex.`);
                                     } else {
                                         log(`[EVOLUTION] Pokemon ${pokemon.monsterid} (${pokemon.name}) should be kept to evolve into one if its next forms ${nextForms[0].name} or ${nextForms[1].name}. Moving it...`);
-                                        movePokemonToNamedField(pokemon.monsterid, "EVO").subscribe()
+                                        movePokemonToEvolutionField(pokemon).subscribe()
                                     }
                                     return nextForms[0].isInDex(Pokedex.pokedex) && nextForms[1].isInDex(Pokedex.pokedex);
                                 }

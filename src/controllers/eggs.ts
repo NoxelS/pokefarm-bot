@@ -4,6 +4,8 @@ import { catchError, concatMap, filter, first, map, mergeMap, retry, switchMap, 
 import { log } from '../shared/logger';
 import { RequestMethod, sendServerRequest, sendServerRequestAndGetHtml } from '../utils/requests';
 import { getFields } from './fields';
+import { EvoStoneEnum } from "../shared/items.const";
+import { PokemonWithField } from "./party.interacter";
 
 
 /** TODO: only filters out text! Needs some mapping to understand what types of requirements are possible */
@@ -19,6 +21,24 @@ export function checkEvoRequirements(monsterid: string) {
             );
         })
     );
+}
+
+//TODO write same code for Orb maybe...
+export function evolvePokemonWithStone(pokemon: PokemonWithField, evolutionRequirementText: string) {
+    let itemID;
+
+    for (let evoStoneEnumKey in EvoStoneEnum) {
+        if (evolutionRequirementText.includes(evoStoneEnumKey + " Stone")) {
+            log(`Evolving ${pokemon.name} using ${evoStoneEnumKey} Stone.`)
+            itemID = EvoStoneEnum[evoStoneEnumKey]; // ignore IDE warning
+        }
+    }
+    return sendServerRequest(
+        'https://pokefarm.com/summary/helditem',
+        RequestMethod.Post,
+        `{"id":"${pokemon.monsterid}","consumable":"consume","item":"${itemID}","returnmode":"summary"}`
+    );
+
 }
 
 export function evolvePokemon(pokemonid: string, intoid: string) {
