@@ -178,7 +178,7 @@ export function getNewEggFromShelter(): Observable<string> {
         .pipe(
             catchError(err => {
                 log(`No new egg found after reloading Shelter ${reload_shelter_times} times. Getting egg from lab...`);
-                return getNewEggFromLab();
+                return getRandomEggFromShelter();
             })
         );
 }

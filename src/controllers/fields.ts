@@ -62,7 +62,7 @@ export function movePokemonToEvolutionField(pokemon: PokemonWithField) {
     return sendServerRequestAndGetHtml("https://pokefarm.com/summary/evocheck", RequestMethod.Post, true, `{"id": "${pokemon.monsterid}"}`).pipe(
         map(htmlBody => {
             // console.log(htmlBody.innerText); Actually pretty neat log.
-            const methods: string[] = ['Happiness', 'Trade', 'Level', 'Stone', 'Orb', 'Field', 'Sweet'];
+            const methods: string[] = ['Happiness', 'Trade', 'Level', 'Stone', 'Orb', 'Field'];
             let method: string = 'EVO'
             methods.forEach(potentialMethod => {
                 if (htmlBody.innerText.indexOf(potentialMethod) !== -1) {
@@ -138,7 +138,11 @@ export function finalStageRelease() {
     getPokedex()
         .pipe(
             switchMap(pokedex => {
-                return getAllFieldPokemonsFromUser({ url: process.env.pfqusername as string, name: process.env.pfqusername as string }, ['EVO']).pipe(
+                return getAllFieldPokemonsFromUser({
+                    url: process.env.pfqusername as string,
+                    name: process.env.pfqusername as string
+                }, ['EVO', 'Happiness', 'Trade', 'Level', 'Stone', 'Orb', 'Field']).pipe(
+                    //'EVO', 'Happiness', 'Trade', 'Level', 'Stone', 'Orb', 'Field'
                     switchMap(pokemons => from(pokemons)),
                     // Pokemon in this Observable will be released
                     // Pokemon are kept in this Observable for releasing if they are not rare and are not needed for the Pokedex
